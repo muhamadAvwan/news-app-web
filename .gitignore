@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+node_modules/
+.vercel/
+cache/
+translations.json
+config.json
+secrets.*
+*.local

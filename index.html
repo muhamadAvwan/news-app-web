@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dewan Berita Dunia</title>
+<style>
+  :root{
+    --bg:#0b0e13; --bg2:#121722; --card:#151b26; --card2:#1a2230;
+    --line:#232c3b; --text:#e6ebf3; --muted:#8d97a8; --accent:#4da6ff;
+    --hot:#ff4d4d; --id:#4da6ff; --int:#8a6dff; --trader:#ffc14d; --lain:#7a8290;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:"Segoe UI",Inter,system-ui,Roboto,sans-serif;font-size:15px}
+  a{color:inherit;text-decoration:none}
+  header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#0d1117,#0b0e13);
+    border-bottom:1px solid var(--line);padding:12px 16px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  h1{margin:0;font-size:19px;letter-spacing:.2px}
+  h1 span{opacity:.75;font-weight:500;font-size:13px;margin-left:8px}
+  .grow{flex:1}
+  button,select,input[type=search]{
+    background:var(--card2);color:var(--text);border:1px solid var(--line);
+    border-radius:9px;padding:7px 11px;font-size:13px;font-family:inherit;cursor:pointer}
+  button:hover,select:hover{border-color:#3a4a63}
+  button.active{background:var(--accent);border-color:var(--accent);color:#06121f;font-weight:600}
+  input[type=search]{min-width:180px;cursor:text}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .chip{font-size:11.5px;padding:3px 9px;border-radius:99px;background:var(--card2);
+    border:1px solid var(--line);color:var(--muted)}
+  .chip b{color:var(--text);font-weight:600}
+  .chip.ai{border-color:#2f6b4a;color:#7ce0a8}
+  .chip.kw{border-color:#5a4a1e;color:#f0cf7a}
+  nav{display:flex;gap:6px;overflow-x:auto;padding:10px 16px 0;border-bottom:1px solid var(--line)}
+  nav button{white-space:nowrap;background:transparent;border:none;color:var(--muted);
+    padding:8px 12px;border-radius:9px 9px 0 0;border-bottom:2px solid transparent}
+  nav button.active{color:var(--text);background:#11161f;border-bottom:2px solid var(--accent)}
+  nav .n{opacity:.6;font-size:11px;margin-left:5px}
+  main{padding:14px 16px 60px}
+  .grid{display:grid;gap:11px;grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
+  article{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--bg2);
+    border-radius:12px;padding:12px 13px;display:flex;flex-direction:column;gap:8px}
+  article:hover{border-color:#2e3a4d;background:var(--card2)}
+  .badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;align-self:flex-start}
+  .title{font-size:15.5px;line-height:1.38;font-weight:600}
+  .title:hover{color:var(--accent)}
+  .desc{font-size:12.5px;color:var(--muted);line-height:1.5}
+  .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
+  .bar{height:4px;border-radius:99px;background:#232c3b;overflow:hidden;flex:1;min-width:60px}
+  .bar i{display:block;height:100%;border-radius:99px}
+  .src{color:#9fb3cf}
+  .acts{display:flex;gap:6px;margin-left:auto}
+  .acts button{font-size:11px;padding:3px 8px;border-radius:7px}
+  .empty{text-align:center;color:var(--muted);padding:60px 0}
+  .note{margin:12px 16px 0;padding:9px 12px;border-radius:9px;background:#1a1a12;
+    border:1px solid #4a3f1c;color:#e3c46f;font-size:12.5px}
+  .dot{width:7px;height:7px;border-radius:99px;background:var(--accent);display:inline-block;
+    animation:p 1.2s infinite}
+  @keyframes p{50%{opacity:.25}}
+</style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <h1>🌐 Dewan Berita Dunia <span id="sub">memuat...</span></h1>
+    <div class="grow"></div>
+    <input type="search" id="q" placeholder="Cari berita..." />
+    <select id="sort">
+      <option value="hot">Urut: Terpanas</option>
+      <option value="new">Urut: Terbaru</option>
+    </select>
+    <button id="langBtn" title="Tampilkan judul dalam Bahasa Indonesia">🇮🇩 Indonesia</button>
+    <button id="refreshBtn">🔄 Segarkan</button>
+  </div>
+  <div class="chips" id="chips"></div>
+</header>
+<nav id="tabs"></nav>
+<div id="note"></div>
+<main>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none"></div>
+</main>
+<script>
+const CATSTYLE = {
+  GENTING:{label:"Genting / Urgent",color:"#ff4d4d"},
+  POLITIK_ID:{label:"Politik Dalam Negeri",color:"#4da6ff"},
+  POLITIK_INT:{label:"Politik Internasional",color:"#8a6dff"},
+  TRADER:{label:"Trader / Pasar",color:"#ffc14d"},
+  LAINNYA:{label:"Lainnya",color:"#7a8290"}
+};
+const TR_CACHE_KEY = "dbd_translations_v1";
+const TR_CACHE_TTL = 14*24*3600*1000;
+let TRANSLATE_URL = window.TRANSLATE_URL || "";
+const S = {data:null, tab:"ALL", sort:"hot", lang:"orig", q:"", translating:new Set(), noTrans:false, trCache:{}};
+
+function trLoad(){
+  try{
+    const o=JSON.parse(localStorage.getItem(TR_CACHE_KEY)||"{}");
+    const now=Date.now();
+    Object.keys(o).forEach(k=>{ if(now-o[k].ts < TR_CACHE_TTL) S.trCache[k]=o[k].v; });
+  }catch(e){}
+}
+function trSave(){
+  try{
+    const now=Date.now(), o={};
+    Object.keys(S.trCache).forEach(k=>{ o[k]={v:S.trCache[k],ts:now}; });
+    localStorage.setItem(TR_CACHE_KEY, JSON.stringify(o));
+  }catch(e){}
+}
+
+const $ = s => document.querySelector(s);
+const grid = $("#grid");
+
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function ago(iso){
+  if(!iso) return "";
+  const d=(Date.now()-new Date(iso))/1000;
+  if(d<60) return "baru saja";
+  if(d<3600) return Math.floor(d/60)+" mnt lalu";
+  if(d<86400) return Math.floor(d/3600)+" jam lalu";
+  return Math.floor(d/86400)+" hr lalu";
+}
+function flames(h){return "🔥".repeat(Math.max(1,Math.min(5,Math.round(h/20))))}
+function shown(a){
+  return S.lang === "id" ? (a.title_id || a.title) : a.title;
+}
+
+function renderTabs(){
+  const d=S.data; if(!d) return;
+  const counts={ALL:d.articles.length};
+  Object.keys(CATSTYLE).forEach(c=>counts[c]=0);
+  d.articles.forEach(a=>counts[a.category]=(counts[a.category]||0)+1);
+  const tabs=[["ALL","Semua","#e6ebf3"]].concat(
+    (d.categories||[]).map(c=>[c.code,c.label,c.color]));
+  $("#tabs").innerHTML = tabs.map(([code,label,color])=>
+    `<button data-tab="${code}" class="${S.tab===code?"active":""}">
+      ${code==="ALL"?"🗂️":""} ${label}<span class="n">${counts[code]||0}</span></button>`).join("");
+  $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    S.tab=b.dataset.tab; renderTabs(); render(); ensureTr();
+  });
+}
+
+function visible(){
+  let list = (S.data?.articles)||[];
+  if(S.tab!=="ALL") list = list.filter(a=>a.category===S.tab);
+  if(S.q){
+    const q=S.q.toLowerCase();
+    list = list.filter(a=>(shown(a)+" "+a.source).toLowerCase().includes(q));
+  }
+  list = list.slice();
+  list.sort(S.sort==="new"
+    ? (a,b)=>(new Date(b.published||0))-(new Date(a.published||0))
+    : (a,b)=>b.hotness-a.hotness || (new Date(b.published||0))-(new Date(a.published||0)));
+  return list;
+}
+
+function card(a){
+  const cs=CATSTYLE[a.category]||CATSTYLE.LAINNYA;
+  const multi=a.source_count>1?` (+${a.source_count-1})`:"";
+  const t=shown(a);
+  const needsId = S.lang==="id" && !a.title_id && !S.noTrans;
+  const el=document.createElement("article");
+  el.style.borderLeftColor=cs.color;
+  el.innerHTML=`
+    <span class="badge" style="background:${cs.color}22;color:${cs.color}">${cs.label}</span>
+    <a class="title" href="${esc(a.url)}" target="_blank" rel="noopener">${esc(t)}</a>
+    ${a.desc?`<div class="desc">${esc(a.desc.slice(0,150))}</div>`:""}
+    <div class="meta">
+      <span class="src">${esc(a.source)}${multi}</span>
+      <span>·</span><span>${ago(a.published)}</span>
+      <span>·</span><span title="Skor panas ${a.hotness}">${flames(a.hotness)} ${a.hotness}</span>
+      <span class="bar"><i style="width:${a.hotness}%;background:linear-gradient(90deg,#3a86ff,${cs.color})"></i></span>
+      <span class="acts">
+        <button data-id="${a.id}" title="Terjemahkan judul ini ke Bahasa Indonesia">🇮🇩 ID</button>
+        <a href="${esc(a.url)}" target="_blank" rel="noopener"><button>Baca ↗</button></a>
+      </span>
+    </div>`;
+  const b=el.querySelector(".acts button");
+  b.textContent = a.title_id ? "✔ ID" : (S.translating.has(a.id) ? "..." : "🇮🇩 ID");
+  b.onclick=()=>translate([a.id]);
+  if(needsId) el.querySelector(".title").style.color="#9fb3cf";
+  return el;
+}
+
+function render(){
+  const list=visible();
+  grid.innerHTML="";
+  list.slice(0,120).forEach(a=>grid.appendChild(card(a)));
+  $("#empty").style.display = list.length ? "none" : "block";
+  if(list.length===0) $("#empty").textContent = S.data ? "Tidak ada berita di kategori ini." : "Sedang mengambil berita dari seluruh dunia...";
+}
+
+function renderHeader(){
+  const d=S.data; if(!d) return;
+  const mins=Math.max(0,Math.round((d.next_refresh_ts*1000-Date.now())/60000));
+  $("#sub").textContent = `${d.articles.length} berita · update ${ago(d.updated_at)} · refresh ${mins} mnt lagi${d.refreshing?" · mengambil...":""}`;
+  const chips=[];
+  if(d.brain==="ai"){
+    chips.push(`<span class="chip ai">🧠 Otak AI <b>${esc(d.provider||"")}</b></span>`);
+  }else{
+    chips.push(`<span class="chip kw">🧠 Otak sederhana (kata kunci)</span>`);
+  }
+  if(d.translate_engine==="local"){
+    chips.push(`<span class="chip ai">🇮🇩 Terjemahan lokal <b>Argos (offline)</b></span>`);
+  }else if(d.translate_engine==="ai"){
+    chips.push(`<span class="chip ai">🇮🇩 Terjemahan <b>AI</b></span>`);
+  }else if(d.translate_engine==="external" && TRANSLATE_URL){
+    chips.push(`<span class="chip ai">🇮🇩 Terjemahan <b>Argos (server terpisah)</b></span>`);
+  }
+  chips.push(`<span class="chip">Sumber aktif <b>${d.sources_ok.length}</b></span>`);
+  if(d.sources_fail.length) chips.push(`<span class="chip">Gagal <b>${d.sources_fail.length}</b></span>`);
+  if(S.lang==="id" && !S.noTrans){
+    chips.push(`<span class="chip">Mode judul <b>Bahasa Indonesia 🇮🇩</b></span>`);
+  }else if(S.lang==="id"){
+    chips.push(`<span class="chip kw">⚠️ Terjemahan tidak tersedia, tampil judul asli</span>`);
+  }
+  $("#chips").innerHTML=chips.join("");
+  const te=d.translate_engine||"";
+  if(d.brain!=="ai" && te==="external" && !TRANSLATE_URL){
+    $("#note").innerHTML=`<div class="note">ℹ️ Layanan terjemahan belum diatur. Tambahkan <b>window.TRANSLATE_URL</b> di index.html agar tombol 🇮🇩 berfungsi.</div>`;
+  }else if(d.brain!=="ai"){
+    $("#note").innerHTML="";
+  }else{
+    $("#note").innerHTML="";
+  }
+}
+
+function translate(ids){
+  const todo=[];
+  ids.forEach(id=>{
+    if(S.trCache[id]){
+      const a=S.data?.articles.find(x=>x.id===id);
+      if(a) a.title_id=S.trCache[id];
+    }else{
+      todo.push(id);
+    }
+  });
+  if(todo.length) render();
+  const missing=todo.filter(i=>!S.translating.has(i));
+  missing.forEach(i=>S.translating.add(i));
+  if(!missing.length){renderHeader();return Promise.resolve();}
+  if(!TRANSLATE_URL){
+    S.noTrans=true;
+    missing.forEach(i=>S.translating.delete(i));
+    render(); renderHeader();
+    return Promise.resolve();
+  }
+  const arts=(S.data?.articles)||[];
+  const items=missing
+    .map(id=>{
+      const a=arts.find(x=>x.id===id);
+      return a?{id:id,text:a.title,lang:(a.lang||"en")}:null;
+    })
+    .filter(Boolean);
+  fetch(TRANSLATE_URL,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({items:items})})
+    .then(r=>r.json())
+    .then(j=>{
+      let got=0;
+      (j.items||[]).forEach(it=>{
+        if(!it || !it.id || !it.text) return;
+        got++;
+        S.trCache[it.id]=it.text;
+        const a=S.data.articles.find(x=>x.id===it.id);
+        if(a) a.title_id=it.text;
+      });
+      if(got===0) S.noTrans=true;
+      missing.forEach(i=>S.translating.delete(i));
+      trSave(); render(); renderHeader();
+    })
+    .catch(()=>{missing.forEach(i=>S.translating.delete(i));S.noTrans=true;render();renderHeader();});
+}
+
+function ensureTr(){
+  if(S.lang!=="id" || !S.data) return;
+  const ids=visible().filter(a=>!a.title_id).slice(0,40).map(a=>a.id);
+  if(ids.length) translate(ids);
+}
+
+async function poll(force){
+  try{
+    const r=await fetch("/api/news",force?{cache:"no-store"}:{});
+    const d=await r.json();
+    S.data=d;
+    S.noTrans=false;
+    (d.articles||[]).forEach(a=>{
+      if(S.trCache[a.id]) a.title_id=S.trCache[a.id];
+    });
+    renderHeader(); renderTabs(); render(); ensureTr();
+  }catch(e){}
+}
+
+$("#q").oninput=e=>{S.q=e.target.value.trim();render();ensureTr()};
+$("#sort").onchange=e=>{S.sort=e.target.value;render();ensureTr()};
+$("#langBtn").onclick=()=>{
+  S.lang = S.lang==="id" ? "orig" : "id";
+  const b=$("#langBtn");
+  b.classList.toggle("active",S.lang==="id");
+  b.textContent = S.lang==="id" ? "🌍 Bahasa Asli" : "🇮🇩 Indonesia";
+  render(); ensureTr(); renderHeader();
+};
+$("#refreshBtn").onclick=async()=>{
+  $("#refreshBtn").disabled=true;
+  $("#refreshBtn").innerHTML='<span class="dot"></span> Mengambil...';
+  await poll(true);
+  $("#refreshBtn").disabled=false;
+  $("#refreshBtn").innerHTML="🔄 Segarkan";
+};
+trLoad();
+(async()=>{
+  try{
+    const r=await fetch("/api/config");
+    if(r.ok){ const j=await r.json(); if(j && j.translate_url) TRANSLATE_URL=j.translate_url; }
+  }catch(e){}
+  await poll(false);
+  setInterval(()=>poll(false),300000);
+})();
+</script>
+</body>
+</html>
