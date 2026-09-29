@@ -312,8 +312,8 @@ def build_state():
         "updated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "brain": "keyword",
         "provider": None,
-        "translate_engine": "external",
-        "note": "Klasifikasi kata kunci. Terjemahan via layanan Argos eksternal.",
+        "translate_engine": "browser",
+        "note": "Klasifikasi kata kunci. Terjemahan memakai fitur bawaan browser.",
         "refreshing": False,
         "next_refresh_ts": time.time() + 300,
         "sources_ok": ok,
@@ -362,7 +362,7 @@ def app(environ, start_response):
                 "updated_at": None,
                 "brain": "error",
                 "provider": None,
-                "translate_engine": "external",
+                "translate_engine": "browser",
                 "note": "Gagal mengambil berita: " + str(e)[:120],
                 "refreshing": False,
                 "next_refresh_ts": time.time() + 60,
@@ -371,11 +371,6 @@ def app(environ, start_response):
                 "categories": [{"code": c[0], "label": c[1], "color": c[2]} for c in CATS],
                 "articles": [],
             })
-
-    if path == "/api/config":
-        return respond(start_response, 200, {
-            "translate_url": os.environ.get("TRANSLATE_URL", ""),
-        }, [("Cache-Control", "public, max-age=300")])
 
     if path == "/api/health":
         return respond(start_response, 200, {"ok": True, "service": "news-api"})

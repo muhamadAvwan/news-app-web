@@ -91,8 +91,24 @@ const CATSTYLE = {
 };
 const TR_CACHE_KEY = "dbd_translations_v1";
 const TR_CACHE_TTL = 14*24*3600*1000;
-let TRANSLATE_URL = window.TRANSLATE_URL || "";
-const S = {data:null, tab:"ALL", sort:"hot", lang:"orig", q:"", translating:new Set(), noTrans:false, trCache:{}};
+const S = {data:null, tab:"ALL", sort:"hot", lang:"orig", q:"", translating:new Set(), noTrans:false, trCache:{}, trAvail:"unknown"};
+
+let _trInst = null;
+async function getTranslator(){
+  if(_trInst) return _trInst;
+  if(!("Translator" in self)){ S.trAvail="noapi"; return null; }
+  try{
+    const av = await Translator.availability({sourceLanguage:"en", targetLanguage:"id"});
+    S.trAvail = av;
+    if(av==="unavailable") return null;
+    _trInst = await Translator.create({sourceLanguage:"en", targetLanguage:"id"});
+    S.trAvail = "available";
+    return _trInst;
+  }catch(e){
+    S.trAvail = "unavailable";
+    return null;
+  }
+}
 
 function trLoad(){
   try{
@@ -160,19 +176,20 @@ function card(a){
   const multi=a.source_count>1?` (+${a.source_count-1})`:"";
   const t=shown(a);
   const needsId = S.lang==="id" && !a.title_id && !S.noTrans;
+  const lg = a.lang==="en" ? ' lang="en" translate="yes"' : "";
   const el=document.createElement("article");
   el.style.borderLeftColor=cs.color;
   el.innerHTML=`
     <span class="badge" style="background:${cs.color}22;color:${cs.color}">${cs.label}</span>
-    <a class="title" href="${esc(a.url)}" target="_blank" rel="noopener">${esc(t)}</a>
-    ${a.desc?`<div class="desc">${esc(a.desc.slice(0,150))}</div>`:""}
+    <a class="title"${lg} href="${esc(a.url)}" target="_blank" rel="noopener">${esc(t)}</a>
+    ${a.desc?`<div class="desc"${lg}>${esc(a.desc.slice(0,150))}</div>`:""}
     <div class="meta">
       <span class="src">${esc(a.source)}${multi}</span>
       <span>·</span><span>${ago(a.published)}</span>
       <span>·</span><span title="Skor panas ${a.hotness}">${flames(a.hotness)} ${a.hotness}</span>
       <span class="bar"><i style="width:${a.hotness}%;background:linear-gradient(90deg,#3a86ff,${cs.color})"></i></span>
       <span class="acts">
-        <button data-id="${a.id}" title="Terjemahkan judul ini ke Bahasa Indonesia">🇮🇩 ID</button>
+        <button data-id="${a.id}" title="Terjemahkan judul ini dengan fitur browser">🇮🇩 ID</button>
         <a href="${esc(a.url)}" target="_blank" rel="noopener"><button>Baca ↗</button></a>
       </span>
     </div>`;
@@ -201,75 +218,75 @@ function renderHeader(){
   }else{
     chips.push(`<span class="chip kw">🧠 Otak sederhana (kata kunci)</span>`);
   }
-  if(d.translate_engine==="local"){
-    chips.push(`<span class="chip ai">🇮🇩 Terjemahan lokal <b>Argos (offline)</b></span>`);
-  }else if(d.translate_engine==="ai"){
-    chips.push(`<span class="chip ai">🇮🇩 Terjemahan <b>AI</b></span>`);
-  }else if(d.translate_engine==="external" && TRANSLATE_URL){
-    chips.push(`<span class="chip ai">🇮🇩 Terjemahan <b>Argos (server terpisah)</b></span>`);
+  if(d.translate_engine==="browser"){
+    chips.push(`<span class="chip ai">🇮🇩 Terjemahan <b>bawaan browser</b></span>`);
   }
   chips.push(`<span class="chip">Sumber aktif <b>${d.sources_ok.length}</b></span>`);
   if(d.sources_fail.length) chips.push(`<span class="chip">Gagal <b>${d.sources_fail.length}</b></span>`);
   if(S.lang==="id" && !S.noTrans){
     chips.push(`<span class="chip">Mode judul <b>Bahasa Indonesia 🇮🇩</b></span>`);
+  }else if(S.lang==="id" && S.trAvail==="noapi"){
+    chips.push(`<span class="chip kw">⚠️ Browser tidak punya API terjemahan — pakai <b>klik kanan → Terjemahkan</b></span>`);
   }else if(S.lang==="id"){
     chips.push(`<span class="chip kw">⚠️ Terjemahan tidak tersedia, tampil judul asli</span>`);
   }
   $("#chips").innerHTML=chips.join("");
-  const te=d.translate_engine||"";
-  if(d.brain!=="ai" && te==="external" && !TRANSLATE_URL){
-    $("#note").innerHTML=`<div class="note">ℹ️ Layanan terjemahan belum diatur. Tambahkan <b>window.TRANSLATE_URL</b> di index.html agar tombol 🇮🇩 berfungsi.</div>`;
-  }else if(d.brain!=="ai"){
-    $("#note").innerHTML="";
+  if(S.lang==="id" && (S.noTrans||S.trAvail==="noapi"||S.trAvail==="unavailable")){
+    $("#note").innerHTML=`<div class="note">🌐 Terjemahan otomatis judul belum aktif di browser ini. Gunakan fitur terjemahan bawaan browser: <b>klik kanan di halaman → "Terjemahkan ke Bahasa Indonesia"</b> (di Brave/Chrome; lakukan setelah daftar berita muncul). Seluruh isi halaman termasuk judul berita akan diterjemahkan.</div>`;
   }else{
     $("#note").innerHTML="";
   }
 }
 
-function translate(ids){
-  const todo=[];
+async function translate(ids){
+  if(!S.data) return;
+  const arts=S.data.articles;
+  const pending=[];
   ids.forEach(id=>{
     if(S.trCache[id]){
-      const a=S.data?.articles.find(x=>x.id===id);
+      const a=arts.find(x=>x.id===id);
       if(a) a.title_id=S.trCache[id];
-    }else{
-      todo.push(id);
+    }else if(!S.translating.has(id)){
+      pending.push(id);
+      S.translating.add(id);
     }
   });
-  if(todo.length) render();
-  const missing=todo.filter(i=>!S.translating.has(i));
-  missing.forEach(i=>S.translating.add(i));
-  if(!missing.length){renderHeader();return Promise.resolve();}
-  if(!TRANSLATE_URL){
-    S.noTrans=true;
-    missing.forEach(i=>S.translating.delete(i));
-    render(); renderHeader();
-    return Promise.resolve();
+  if(pending.length) render();
+  if(!pending.length){renderHeader();return;}
+  const need=[];
+  pending.forEach(id=>{
+    const a=arts.find(x=>x.id===id);
+    if(!a) return;
+    if((a.lang||"")==="id"){
+      a.title_id=a.title;
+      S.trCache[id]=a.title;
+    }else{
+      need.push(a);
+    }
+  });
+  if(!need.length){
+    pending.forEach(i=>S.translating.delete(i));
+    trSave(); render(); renderHeader(); return;
   }
-  const arts=(S.data?.articles)||[];
-  const items=missing
-    .map(id=>{
-      const a=arts.find(x=>x.id===id);
-      return a?{id:id,text:a.title,lang:(a.lang||"en")}:null;
-    })
-    .filter(Boolean);
-  fetch(TRANSLATE_URL,{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({items:items})})
-    .then(r=>r.json())
-    .then(j=>{
-      let got=0;
-      (j.items||[]).forEach(it=>{
-        if(!it || !it.id || !it.text) return;
-        got++;
-        S.trCache[it.id]=it.text;
-        const a=S.data.articles.find(x=>x.id===it.id);
-        if(a) a.title_id=it.text;
-      });
-      if(got===0) S.noTrans=true;
-      missing.forEach(i=>S.translating.delete(i));
-      trSave(); render(); renderHeader();
-    })
-    .catch(()=>{missing.forEach(i=>S.translating.delete(i));S.noTrans=true;render();renderHeader();});
+  const tr=await getTranslator();
+  if(!tr){
+    S.noTrans=true;
+    pending.forEach(i=>S.translating.delete(i));
+    render(); renderHeader();
+    return;
+  }
+  for(const a of need){
+    try{
+      const out=await tr.translate(a.title);
+      a.title_id=(out||"").trim()||a.title;
+    }catch(e){
+      a.title_id=a.title;
+    }
+    S.trCache[a.id]=a.title_id;
+    S.translating.delete(a.id);
+  }
+  S.noTrans=false;
+  trSave(); render(); renderHeader();
 }
 
 function ensureTr(){
@@ -309,10 +326,15 @@ $("#refreshBtn").onclick=async()=>{
 };
 trLoad();
 (async()=>{
-  try{
-    const r=await fetch("/api/config");
-    if(r.ok){ const j=await r.json(); if(j && j.translate_url) TRANSLATE_URL=j.translate_url; }
-  }catch(e){}
+  if("Translator" in self){
+    try{
+      S.trAvail = await Translator.availability({sourceLanguage:"en", targetLanguage:"id"});
+    }catch(e){
+      S.trAvail = "unavailable";
+    }
+  }else{
+    S.trAvail = "noapi";
+  }
   await poll(false);
   setInterval(()=>poll(false),300000);
 })();

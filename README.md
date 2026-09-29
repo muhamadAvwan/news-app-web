@@ -18,17 +18,22 @@ Portal berita agregator: frontend statis + Vercel Functions (Python, stdlib saja
 |---|---|
 | `GET /` | Halaman utama (statis) |
 | `GET /api/news` | JSON berita terklasifikasi (cache CDN 2 menit) |
-| `GET /api/config` | Konfigurasi runtime (membaca env var `TRANSLATE_URL`) |
 | `GET /api/health` | Cek hidup |
 
 ## Deploy ke Vercel
 
-1. Fork / import repo ini di [vercel.com/new](https://vercel.com/new)
-2. Deploy (tanpa setting apapun — langsung jalan)
-3. (Opsional) Set environment variable `TRANSLATE_URL` berisi URL layanan penerjemah, contoh: `https://nama-space.hf.space/translate` — lihat repo `news-app-translate`
+1. Import repo ini di [vercel.com/new](https://vercel.com/new)
+2. Deploy (tanpa setting apapun)
+3. Selesai — langsung jalan
+
+## Terjemahan bahasa Indonesia
+
+Terjemahan memakai **fitur bawaan browser**, tanpa server tambahan:
+
+1. **Default** (Brave/Chrome versi baru): tombol 🇮🇩 memakai *Translator API* on-device bawaan browser. Hasil disimpan di cache browser (localStorage) selama 14 hari.
+2. **Fallback** (browser tanpa API): halaman menampilkan petunjuk untuk **klik kanan → "Terjemahkan ke Bahasa Indonesia"** (Brave/Chrome) — semua isi halaman termasuk judul berita akan diterjemahkan browser.
 
 ## Catatan
 
 - Tidak ada API key dan tidak ada database — aman dipublikasikan.
-- Terjemahan bahasa Indonesia dilayani oleh service terpisah (repo `news-app-translate`, Argos Translate) dan dikonfigurasi via env var `TRANSLATE_URL`.
-- Cache terjemahan disimpan di browser (localStorage) selama 14 hari.
+- Klasifikasi memakai otak sederhana (kata kunci), bukan AI berbayar.
