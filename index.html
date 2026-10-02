@@ -91,9 +91,7 @@
   @keyframes p{50%{opacity:.25}}
 
   /* ---------- filter ---------- */
-  .tabs,.genres{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;
-    -ms-overflow-style:none}
-  .tabs::-webkit-scrollbar,.genres::-webkit-scrollbar{display:none}
+  .tabs,.genres{display:flex;gap:7px;flex-wrap:wrap}
   .tabs{padding:14px 0 0}
   .tabs button,.genres button{flex:0 0 auto;white-space:nowrap;border-radius:99px}
   .tabs button{padding:7px 14px;color:var(--dim);font-weight:500;font-size:13.5px;
