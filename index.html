@@ -3,141 +3,165 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
 <title>Dewan Berita Dunia</title>
 <style>
   :root{
-    --bg:#0b0e13; --bg2:#121722; --card:#151b26; --card2:#1a2230;
-    --line:#232c3b; --text:#e6ebf3; --muted:#8d97a8; --accent:#4da6ff;
-    --hot:#ff4d4d; --id:#4da6ff; --int:#8a6dff; --trader:#ffc14d; --lain:#7a8290;
+    --bg:#0a0c11; --surface:#12151d; --surface-2:#171b25; --line:#202634;
+    --text:#e9edf5; --dim:#98a2b3; --faint:#69717f; --accent:#4f8ef7;
+    --r:14px;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);
-    font-family:"Segoe UI",Inter,system-ui,Roboto,sans-serif;font-size:15px}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5;
+    font-family:"Segoe UI",Inter,system-ui,-apple-system,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased}
   a{color:inherit;text-decoration:none}
-  header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#0d1117,#0b0e13);
-    border-bottom:1px solid var(--line);padding:12px 16px}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  h1{margin:0;font-size:19px;letter-spacing:.2px}
-  h1 span{opacity:.75;font-weight:500;font-size:13px;margin-left:8px}
+  .wrap{max-width:1360px;margin:0 auto;padding:0 20px}
+  button,select,input{font:inherit}
+
+  /* ---------- header ---------- */
+  header{position:sticky;top:0;z-index:30;background:rgba(10,12,17,.86);
+    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line)}
+  .top{display:flex;gap:9px;align-items:center;padding:12px 0 8px}
+  .brand{font-size:16px;font-weight:650;letter-spacing:-.2px;white-space:nowrap}
+  .brand i{font-style:normal;margin-right:7px}
   .grow{flex:1}
-  button,select,input[type=search]{
-    background:var(--card2);color:var(--text);border:1px solid var(--line);
-    border-radius:9px;padding:7px 11px;font-size:13px;font-family:inherit;cursor:pointer}
-  button:hover,select:hover{border-color:#3a4a63}
-  button.active{background:var(--accent);border-color:var(--accent);color:#06121f;font-weight:600}
-  input[type=search]{min-width:180px;cursor:text}
-  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-  .chip{font-size:11.5px;padding:3px 9px;border-radius:99px;background:var(--card2);
-    border:1px solid var(--line);color:var(--muted)}
-  .chip b{color:var(--text);font-weight:600}
-  .chip.ai{border-color:#2f6b4a;color:#7ce0a8}
-  .chip.kw{border-color:#5a4a1e;color:#f0cf7a}
-  nav{display:flex;gap:6px;overflow-x:auto;padding:10px 16px 0;border-bottom:1px solid var(--line)}
-  nav button{white-space:nowrap;flex:0 0 auto;background:transparent;border:none;color:var(--muted);
-    padding:8px 12px;border-radius:9px 9px 0 0;border-bottom:2px solid transparent}
-  nav button.active{color:var(--text);background:#11161f;border-bottom:2px solid var(--accent)}
-  nav .n{opacity:.6;font-size:11px;margin-left:5px}
-  nav#genres{padding:7px 16px;border-bottom:1px solid var(--line);background:#0d121a}
-  nav#genres button{padding:5px 10px;border-radius:99px;border:1px solid var(--line);
-    background:var(--card2);font-size:12px;color:var(--muted)}
-  nav#genres button.active{background:var(--gcolor,var(--accent));border-color:var(--gcolor,var(--accent));
-    color:#06121f;font-weight:600}
-  nav#genres .lbl{font-size:10.5px;letter-spacing:.6px;color:var(--muted);
-    align-self:center;margin-right:2px;flex:0 0 auto}
-  .gtags{display:flex;gap:5px;flex-wrap:wrap}
-  .gtag{font-size:10.5px;padding:2px 7px;border-radius:99px;font-weight:600}
-  main{padding:14px 16px 60px}
-  .grid{display:grid;gap:11px;grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
-  article{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--bg2);
-    border-radius:12px;padding:12px 13px;display:flex;flex-direction:column;gap:8px}
-  article:hover{border-color:#2e3a4d;background:var(--card2)}
-  .badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;align-self:flex-start}
-  .title{font-size:15.5px;line-height:1.38;font-weight:600}
-  .title:hover{color:var(--accent)}
-  .desc{font-size:12.5px;color:var(--muted);line-height:1.5}
-  .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
-  .bar{height:4px;border-radius:99px;background:#232c3b;overflow:hidden;flex:1;min-width:60px}
-  .bar i{display:block;height:100%;border-radius:99px}
-  .src{color:#9fb3cf}
-  .acts{display:flex;gap:6px;margin-left:auto}
-  .acts button{font-size:11px;padding:3px 8px;border-radius:7px}
-  .empty{text-align:center;color:var(--muted);padding:60px 0}
-  .note{margin:12px 16px 0;padding:9px 12px;border-radius:9px;background:#1a1a12;
-    border:1px solid #4a3f1c;color:#e3c46f;font-size:12.5px}
-  .dot{width:7px;height:7px;border-radius:99px;background:var(--accent);display:inline-block;
-    animation:p 1.2s infinite}
+  input[type=search],select,button{color:var(--text);background:var(--surface-2);
+    border:1px solid var(--line);border-radius:10px;padding:7px 11px;font-size:13px}
+  input[type=search]{min-width:180px;flex:0 1 250px;cursor:text}
+  input[type=search]::placeholder{color:var(--faint)}
+  input[type=search]:focus,select:focus{outline:none;border-color:#39445a}
+  button{cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
+  button:hover{border-color:#333d51;background:#1c2130}
+  button:disabled{opacity:.5;cursor:default}
+  button.on{background:var(--text);border-color:var(--text);color:#0a0c11;font-weight:600}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .status{padding-bottom:11px;font-size:12.5px;color:var(--faint)}
+  .dot{width:6px;height:6px;border-radius:99px;background:var(--accent);
+    display:inline-block;margin-right:6px;animation:p 1.2s infinite}
   @keyframes p{50%{opacity:.25}}
+
+  /* ---------- filter ---------- */
+  .tabs,.genres{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none}
+  .tabs::-webkit-scrollbar,.genres::-webkit-scrollbar{display:none}
+  .tabs{padding:14px 0 0}
+  .tabs button,.genres button{flex:0 0 auto;white-space:nowrap;border-radius:99px}
+  .tabs button{padding:7px 14px;color:var(--dim);font-weight:500;font-size:13.5px}
+  .tabs button:hover,.genres button:hover{color:var(--text)}
+  .tabs button.on{background:var(--text);border-color:var(--text);color:#0a0c11;font-weight:600}
+  .n{margin-left:7px;font-size:11.5px;opacity:.55;font-variant-numeric:tabular-nums}
+  .genres{padding:9px 0 15px;align-items:center}
+  .genres .lbl{font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;
+    color:var(--faint);font-weight:700;margin-right:3px;flex:0 0 auto}
+  .genres button{padding:5px 12px;font-size:12.5px;color:var(--dim)}
+  .genres button.on{background:var(--gc);border-color:var(--gc);color:#0a0c11;font-weight:600}
+  .note{padding:10px 13px;border-radius:11px;background:#191510;
+    border:1px solid #3d3319;color:#e0c479;font-size:12.5px;margin:2px 0 4px}
+
+  /* ---------- kartu ---------- */
+  main{padding:6px 0 0}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(315px,1fr))}
+  article{position:relative;background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--r);padding:16px 18px;display:flex;flex-direction:column;gap:9px;
+    transition:border-color .15s,background .15s}
+  article:hover{border-color:#2d364a;background:var(--surface-2)}
+  article::before{content:"";position:absolute;left:0;top:15px;bottom:15px;width:3px;
+    border-radius:99px;background:var(--c,var(--accent))}
+  .kick{display:flex;align-items:center;gap:9px}
+  .kicker{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;
+    color:var(--c,var(--accent))}
+  .hot{margin-left:auto;font-size:11px;font-weight:700;color:#ffb020;
+    background:rgba(255,176,32,.10);padding:2px 8px;border-radius:99px}
+  h3{margin:0}
+  .title{font-size:15.5px;font-weight:600;line-height:1.4;letter-spacing:-.1px}
+  .title:hover{color:var(--accent)}
+  .desc{margin:0;font-size:13px;line-height:1.55;color:var(--dim);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .meta{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:1px;
+    font-size:12px;color:var(--faint)}
+  .src{color:var(--dim);font-weight:500}
+  .sep{color:#3d4453}
+  .g{font-weight:600}
+  .tr{margin-left:auto;padding:3px 8px;font-size:11.5px;border-radius:8px;color:var(--faint)}
+  .tr.done{color:#5fbf87;border-color:#254636}
+
+  /* ---------- lain-lain ---------- */
+  .more{display:block;margin:26px auto 0;padding:10px 22px;font-size:13.5px;color:var(--dim)}
+  .empty{text-align:center;color:var(--dim);padding:70px 20px;font-size:14px}
+  .empty b{display:block;font-size:17px;color:var(--text);margin-bottom:7px;font-weight:600}
+  .foot{display:flex;gap:9px;flex-wrap:wrap;margin-top:30px;padding:15px 0 40px;
+    border-top:1px solid var(--line);font-size:11.5px;color:var(--faint)}
+  .foot b{color:var(--dim);font-weight:600}
+  .sk .l{height:9px;border-radius:6px;margin-bottom:9px;
+    background:linear-gradient(90deg,#151922,#1c2130,#151922);background-size:200% 100%;
+    animation:sk 1.3s infinite}
+  @keyframes sk{0%{background-position:0 0}100%{background-position:-200% 0}}
+
+  @media (max-width:640px){
+    .wrap{padding:0 14px}
+    .top{flex-wrap:wrap;padding:10px 0 8px}
+    .brand{flex:1 0 100%;font-size:15px}
+    .grow{display:none}
+    input[type=search]{order:3;flex:1 1 60px;min-width:0}
+    select{order:4}
+    #langBtn{order:5}
+    #refreshBtn{order:6}
+    .status{padding-bottom:9px}
+    .grid{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
 </style>
 </head>
 <body>
 <header>
-  <div class="row">
-    <h1>🌐 Dewan Berita Dunia <span id="sub">memuat...</span></h1>
+  <div class="wrap top">
+    <div class="brand"><i>🌐</i>Dewan Berita Dunia</div>
     <div class="grow"></div>
-    <input type="search" id="q" placeholder="Cari berita..." />
-    <select id="sort">
-      <option value="hot">Urut: Terpanas</option>
-      <option value="new">Urut: Terbaru</option>
+    <input type="search" id="q" placeholder="Cari berita..." aria-label="Cari berita" />
+    <select id="sort" aria-label="Urutkan">
+      <option value="hot">Terpanas</option>
+      <option value="new">Terbaru</option>
     </select>
-    <button id="langBtn" title="Tampilkan judul dalam Bahasa Indonesia">🇮🇩 Indonesia</button>
-    <button id="refreshBtn">🔄 Segarkan</button>
+    <button id="langBtn" title="Judul dalam Bahasa Indonesia">🇮🇩 ID</button>
+    <button id="refreshBtn">Segarkan</button>
   </div>
-  <div class="chips" id="chips"></div>
+  <div class="wrap status"><span id="sub">memuat…</span></div>
 </header>
-<nav id="tabs"></nav>
-<nav id="genres"></nav>
-<div id="note"></div>
-<main>
+
+<div class="wrap">
+  <nav class="tabs" id="tabs"></nav>
+  <nav class="genres" id="genres"></nav>
+  <div id="note"></div>
+</div>
+
+<main class="wrap">
   <div class="grid" id="grid"></div>
+  <button id="more"></button>
   <div class="empty" id="empty" style="display:none"></div>
+  <div class="foot" id="chips"></div>
 </main>
+
 <script>
 const CATSTYLE = {
-  GENTING:{label:"Genting / Urgent",color:"#ff4d4d"},
-  GAME:{label:"Game / Update",color:"#35d07f"},
-  ESPORTS:{label:"Esports",color:"#ff7ac6"},
-  REVIEW_GAME:{label:"Review Game",color:"#ff9f43"},
-  HARDWARE:{label:"Hardware Gaming",color:"#22d3ee"},
-  POLITIK_ID:{label:"Politik Dalam Negeri",color:"#4da6ff"},
-  POLITIK_INT:{label:"Politik Internasional",color:"#8a6dff"},
-  TRADER:{label:"Trader / Pasar",color:"#ffc14d"},
-  LAINNYA:{label:"Lainnya",color:"#7a8290"}
+  GENTING:{label:"Genting / Urgent",color:"#ff6b6b"},
+  GAME:{label:"Game / Update",color:"#4ade80"},
+  ESPORTS:{label:"Esports",color:"#f472b6"},
+  REVIEW_GAME:{label:"Review Game",color:"#fbbf24"},
+  HARDWARE:{label:"Hardware Gaming",color:"#38bdf8"},
+  POLITIK_ID:{label:"Politik Dalam Negeri",color:"#60a5fa"},
+  POLITIK_INT:{label:"Politik Internasional",color:"#a78bfa"},
+  TRADER:{label:"Trader / Pasar",color:"#fcd34d"},
+  LAINNYA:{label:"Lainnya",color:"#9aa4b2"}
 };
+const PAGE = 60;
 const TR_CACHE_KEY = "dbd_translations_v1";
 const TR_CACHE_TTL = 14*24*3600*1000;
-const S = {data:null, tab:"ALL", genre:"", sort:"hot", lang:"orig", q:"", translating:new Set(), noTrans:false, trCache:{}, trAvail:"unknown"};
-
-let _trInst = null;
-async function getTranslator(){
-  if(_trInst) return _trInst;
-  if(!("Translator" in self)){ S.trAvail="noapi"; return null; }
-  try{
-    const av = await Translator.availability({sourceLanguage:"en", targetLanguage:"id"});
-    S.trAvail = av;
-    if(av==="unavailable") return null;
-    _trInst = await Translator.create({sourceLanguage:"en", targetLanguage:"id"});
-    S.trAvail = "available";
-    return _trInst;
-  }catch(e){
-    S.trAvail = "unavailable";
-    return null;
-  }
-}
-
-function trLoad(){
-  try{
-    const o=JSON.parse(localStorage.getItem(TR_CACHE_KEY)||"{}");
-    const now=Date.now();
-    Object.keys(o).forEach(k=>{ if(now-o[k].ts < TR_CACHE_TTL) S.trCache[k]=o[k].v; });
-  }catch(e){}
-}
-function trSave(){
-  try{
-    const now=Date.now(), o={};
-    Object.keys(S.trCache).forEach(k=>{ o[k]={v:S.trCache[k],ts:now}; });
-    localStorage.setItem(TR_CACHE_KEY, JSON.stringify(o));
-  }catch(e){}
-}
+const S = {data:null, tab:"ALL", genre:"", sort:"hot", lang:"orig", q:"", limit:PAGE,
+           translating:new Set(), noTrans:false, trCache:{}, trAvail:"unknown"};
 
 const $ = s => document.querySelector(s);
 const grid = $("#grid");
@@ -151,53 +175,130 @@ function ago(iso){
   if(d<86400) return Math.floor(d/3600)+" jam lalu";
   return Math.floor(d/86400)+" hr lalu";
 }
-function flames(h){return "🔥".repeat(Math.max(1,Math.min(5,Math.round(h/20))))}
-function shown(a){
-  return S.lang === "id" ? (a.title_id || a.title) : a.title;
+function shown(a){return S.lang==="id" ? (a.title_id || a.title) : a.title}
+function hotPill(h){
+  return h>=55 ? `<span class="hot" title="Skor panas ${h}">🔥 ${h}</span>` : "";
+}
+function skeleton(){
+  grid.innerHTML = Array.from({length:6},()=>
+    `<article class="sk"><div class="l" style="width:35%"></div><div class="l" style="width:92%"></div>
+     <div class="l" style="width:70%"></div><div class="l" style="width:45%"></div></article>`).join("");
 }
 
+/* ---------- terjemahan ---------- */
+let _trInst = null;
+async function getTranslator(){
+  if(_trInst) return _trInst;
+  if(!("Translator" in self)){ S.trAvail="noapi"; return null }
+  try{
+    const av = await Translator.availability({sourceLanguage:"en", targetLanguage:"id"});
+    S.trAvail = av;
+    if(av==="unavailable") return null;
+    _trInst = await Translator.create({sourceLanguage:"en", targetLanguage:"id"});
+    S.trAvail = "available";
+    return _trInst;
+  }catch(e){
+    S.trAvail = "unavailable";
+    return null;
+  }
+}
+function trLoad(){
+  try{
+    const o=JSON.parse(localStorage.getItem(TR_CACHE_KEY)||"{}"), now=Date.now();
+    Object.keys(o).forEach(k=>{ if(now-o[k].ts < TR_CACHE_TTL) S.trCache[k]=o[k].v });
+  }catch(e){}
+}
+function trSave(){
+  try{
+    const now=Date.now(), o={};
+    Object.keys(S.trCache).forEach(k=>{ o[k]={v:S.trCache[k],ts:now} });
+    localStorage.setItem(TR_CACHE_KEY, JSON.stringify(o));
+  }catch(e){}
+}
+async function translate(ids){
+  if(!S.data) return;
+  const arts=S.data.articles, pending=[];
+  ids.forEach(id=>{
+    if(S.trCache[id]){
+      const a=arts.find(x=>x.id===id);
+      if(a) a.title_id=S.trCache[id];
+    }else if(!S.translating.has(id)){
+      pending.push(id); S.translating.add(id);
+    }
+  });
+  if(pending.length) render();
+  if(!pending.length){ renderHeader(); return }
+  const need=[];
+  pending.forEach(id=>{
+    const a=arts.find(x=>x.id===id);
+    if(!a) return;
+    if((a.lang||"")==="id"){ a.title_id=a.title; S.trCache[id]=a.title }
+    else need.push(a);
+  });
+  if(!need.length){
+    pending.forEach(i=>S.translating.delete(i));
+    trSave(); render(); renderHeader(); return;
+  }
+  const tr=await getTranslator();
+  if(!tr){
+    S.noTrans=true;
+    pending.forEach(i=>S.translating.delete(i));
+    render(); renderHeader(); return;
+  }
+  for(const a of need){
+    try{ const out=await tr.translate(a.title); a.title_id=(out||"").trim()||a.title }
+    catch(e){ a.title_id=a.title }
+    S.trCache[a.id]=a.title_id;
+    S.translating.delete(a.id);
+  }
+  S.noTrans=false;
+  trSave(); render(); renderHeader();
+}
+function ensureTr(){
+  if(S.lang!=="id" || !S.data) return;
+  const ids=visible().filter(a=>!a.title_id).slice(0,40).map(a=>a.id);
+  if(ids.length) translate(ids);
+}
+
+/* ---------- filter ---------- */
+function GENRE(code){
+  return (S.data?.genres||[]).find(g=>g.code===code)||{code,label:code,color:"#9aa4b2"};
+}
 function renderTabs(){
   const d=S.data; if(!d) return;
   const counts={ALL:d.articles.length};
   Object.keys(CATSTYLE).forEach(c=>counts[c]=0);
   d.articles.forEach(a=>counts[a.category]=(counts[a.category]||0)+1);
-  const tabs=[["ALL","Semua","#e6ebf3"]].concat(
-    (d.categories||[]).map(c=>[c.code,c.label,c.color]));
-  $("#tabs").innerHTML = tabs.map(([code,label,color])=>
-    `<button data-tab="${code}" class="${S.tab===code?"active":""}">
-      ${code==="ALL"?"🗂️":""} ${label}<span class="n">${counts[code]||0}</span></button>`).join("");
+  const tabs=[["ALL","Semua"]].concat((d.categories||[]).map(c=>[c.code,c.label]));
+  $("#tabs").innerHTML = tabs.map(([code,label])=>
+    `<button data-tab="${code}" class="${S.tab===code?"on":""}">${esc(label)}<span class="n">${counts[code]||0}</span></button>`).join("");
   $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    S.tab=b.dataset.tab; renderTabs(); renderGenres(); render(); ensureTr();
+    S.tab=b.dataset.tab; S.limit=PAGE;
+    renderTabs(); renderGenres(); render(); ensureTr();
   });
 }
-
-function GENRE(code){
-  return (S.data?.genres||[]).find(g=>g.code===code)||{code,label:code,color:"#8d97a8"};
-}
-
 // Genre jadi sub-filter dari tab: dihitung hanya di dalam tab aktif supaya
 // angkanya tidak menyesatkan, dan kombinasi kategori+genre yang kosong
 // otomatis tampil pesan "tidak ada berita".
 function renderGenres(){
   const d=S.data, box=$("#genres");
-  if(!d){box.innerHTML="";return}
+  if(!d){ box.innerHTML=""; return }
   const base = S.tab==="ALL" ? d.articles : d.articles.filter(a=>a.category===S.tab);
   const counts={};
   base.forEach(a=>(a.genres||[]).forEach(g=>counts[g]=(counts[g]||0)+1));
-  const chips=[["","Semua Genre","#4da6ff",base.length]]
-    .concat((d.genres||[]).map(g=>[g.code,g.label,g.color,counts[g.code]||0]));
+  const total=Object.values(counts).reduce((x,y)=>x+y,0);
   // Kalau tab aktif tidak punya satu pun artikel ber-genre, barisnya
   // disembunyikan supaya tidak menampilkan angka 0 semua.
-  const total=Object.values(counts).reduce((x,y)=>x+y,0);
-  if(S.tab!=="ALL" && total===0){S.genre="";box.innerHTML="";return}
-  box.innerHTML = `<span class="lbl">GENRE</span>` + chips.map(([code,label,color,n])=>
-    `<button data-genre="${code}" class="${S.genre===code?"active":""}" style="--gcolor:${color}"
-      >${label}<span class="n">${n}</span></button>`).join("");
+  if(S.tab!=="ALL" && total===0){ S.genre=""; box.innerHTML=""; return }
+  const chips=[["","Semua","#4f8ef7",base.length]]
+    .concat((d.genres||[]).map(g=>[g.code,g.label,g.color,counts[g.code]||0]));
+  box.innerHTML = `<span class="lbl">Genre</span>` + chips.map(([code,label,color,n])=>
+    `<button data-genre="${code}" class="${S.genre===code?"on":""}" style="--gc:${color}">${esc(label)}<span class="n">${n}</span></button>`).join("");
   box.querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    S.genre=b.dataset.genre; renderGenres(); render();
+    S.genre=b.dataset.genre; S.limit=PAGE;
+    renderGenres(); render();
   });
 }
-
 function visible(){
   let list = (S.data?.articles)||[];
   if(S.tab!=="ALL") list = list.filter(a=>a.category===S.tab);
@@ -213,175 +314,111 @@ function visible(){
   return list;
 }
 
+/* ---------- kartu ---------- */
 function card(a){
   const cs=CATSTYLE[a.category]||CATSTYLE.LAINNYA;
-  const multi=a.source_count>1?` (+${a.source_count-1})`:"";
   const t=shown(a);
   const needsId = S.lang==="id" && !a.title_id && !S.noTrans;
   const lg = a.lang==="en" ? ' lang="en" translate="yes"' : "";
-  const el=document.createElement("article");
-  el.style.borderLeftColor=cs.color;
-  const tags=(a.genres||[]).slice(0,4).map(c=>{
+  const multi = a.source_count>1 ? ` +${a.source_count-1}` : "";
+  const gs = (a.genres||[]).slice(0,2).map(c=>{
     const g=GENRE(c);
-    return `<span class="gtag" style="background:${g.color}22;color:${g.color}">${esc(g.label)}</span>`;
-  }).join("");
+    return `<span class="g" style="color:${g.color}">${esc(g.label)}</span>`;
+  });
+  if((a.genres||[]).length>2) gs.push(`<span class="g">+${a.genres.length-2}</span>`);
+
+  const el=document.createElement("article");
+  el.style.setProperty("--c", cs.color);
   el.innerHTML=`
-    <span class="badge" style="background:${cs.color}22;color:${cs.color}">${cs.label}</span>
-    ${tags?`<div class="gtags">${tags}</div>`:""}
-    <a class="title"${lg} href="${esc(a.url)}" target="_blank" rel="noopener">${esc(t)}</a>
-    ${a.desc?`<div class="desc"${lg}>${esc(a.desc.slice(0,150))}</div>`:""}
+    <div class="kick">
+      <span class="kicker">${esc(cs.label)}</span>
+      ${hotPill(a.hotness)}
+    </div>
+    <h3><a class="title"${lg} href="${esc(a.url)}" target="_blank" rel="noopener">${esc(t)}</a></h3>
+    ${a.desc?`<p class="desc"${lg}>${esc(a.desc)}</p>`:""}
     <div class="meta">
       <span class="src">${esc(a.source)}${multi}</span>
-      <span>·</span><span>${ago(a.published)}</span>
-      <span>·</span><span title="Skor panas ${a.hotness}">${flames(a.hotness)} ${a.hotness}</span>
-      <span class="bar"><i style="width:${a.hotness}%;background:linear-gradient(90deg,#3a86ff,${cs.color})"></i></span>
-      <span class="acts">
-        <button data-id="${a.id}" title="Terjemahkan judul ini dengan fitur browser">🇮🇩 ID</button>
-        <a href="${esc(a.url)}" target="_blank" rel="noopener"><button>Baca ↗</button></a>
-      </span>
+      <span class="sep">·</span><span>${ago(a.published)}</span>
+      ${gs.length?`<span class="sep">·</span>${gs.join('<span class="sep">·</span>')}`:""}
+      <button class="tr" title="Terjemahkan judul ini ke Bahasa Indonesia">🇮🇩</button>
     </div>`;
-  const b=el.querySelector(".acts button");
-  b.textContent = a.title_id ? "✔ ID" : (S.translating.has(a.id) ? "..." : "🇮🇩 ID");
+  const b=el.querySelector(".tr");
+  if(a.title_id){ b.textContent="✔"; b.classList.add("done") }
+  else if(S.translating.has(a.id)) b.textContent="…";
   b.onclick=()=>translate([a.id]);
-  if(needsId) el.querySelector(".title").style.color="#9fb3cf";
+  if(needsId) el.querySelector(".title").style.color="var(--faint)";
   return el;
 }
-
 function render(){
   const list=visible();
   grid.innerHTML="";
-  list.slice(0,300).forEach(a=>grid.appendChild(card(a)));
+  list.slice(0,S.limit).forEach(a=>grid.appendChild(card(a)));
+  const more=$("#more"), rest=list.length-S.limit;
+  more.style.display = rest>0 ? "block" : "none";
+  more.textContent = `Muat ${Math.min(PAGE,rest)} berita lagi · sisa ${rest}`;
   $("#empty").style.display = list.length ? "none" : "block";
-  if(list.length===0) $("#empty").textContent = S.data
-    ? (S.genre ? `Tidak ada berita ${GENRE(S.genre).label} di ${(CATSTYLE[S.tab]||{label:"kategori ini"}).label}.`
-               : "Tidak ada berita di kategori ini.")
-    : "Sedang mengambil berita dari seluruh dunia...";
+  if(!list.length) $("#empty").innerHTML = S.data
+    ? `<b>Tidak ada berita</b>${S.genre
+        ? `${esc(GENRE(S.genre).label)} di ${esc((CATSTYLE[S.tab]||{label:"kategori ini"}).label)}`
+        : "di kategori ini"}.`
+    : `<b>Memuat berita…</b>Tarik ke bawah atau tekan Segarkan untuk mencoba lagi.`;
 }
 
 function renderHeader(){
   const d=S.data; if(!d) return;
   const mins=Math.max(0,Math.round((d.next_refresh_ts*1000-Date.now())/60000));
-  $("#sub").textContent = `${d.articles.length} berita · update ${ago(d.updated_at)} · refresh ${mins} mnt lagi${d.refreshing?" · mengambil...":""}`;
-  const chips=[];
-  if(d.brain==="ai"){
-    chips.push(`<span class="chip ai">🧠 Otak AI <b>${esc(d.provider||"")}</b></span>`);
-  }else{
-    chips.push(`<span class="chip kw">🧠 Otak sederhana (kata kunci)</span>`);
-  }
-  if(d.translate_engine==="browser"){
-    chips.push(`<span class="chip ai">🇮🇩 Terjemahan <b>bawaan browser</b></span>`);
-  }
-  chips.push(`<span class="chip">Sumber aktif <b>${d.sources_ok.length}</b></span>`);
-  if(d.sources_fail.length) chips.push(`<span class="chip">Gagal <b>${d.sources_fail.length}</b></span>`);
-  if(S.lang==="id" && !S.noTrans){
-    chips.push(`<span class="chip">Mode judul <b>Bahasa Indonesia 🇮🇩</b></span>`);
-  }else if(S.lang==="id" && S.trAvail==="noapi"){
-    chips.push(`<span class="chip kw">⚠️ Browser tidak punya API terjemahan — pakai <b>klik kanan → Terjemahkan</b></span>`);
-  }else if(S.lang==="id"){
-    chips.push(`<span class="chip kw">⚠️ Terjemahan tidak tersedia, tampil judul asli</span>`);
-  }
-  $("#chips").innerHTML=chips.join("");
+  $("#sub").innerHTML = `${d.articles.length} berita · update ${ago(d.updated_at)} · refresh ${mins} mnt lagi${d.refreshing?' · <span class="dot"></span>mengambil':""}`;
+  const chips=[
+    d.brain==="ai" ? `Otak AI · ${esc(d.provider||"")}` : "Klasifikasi kata kunci",
+    `sumber aktif <b>${d.sources_ok.length}</b>`,
+    d.sources_fail.length ? `gagal <b>${d.sources_fail.length}</b>` : "",
+    d.translate_engine==="browser" ? "terjemahan: bawaan browser" : ""
+  ].filter(Boolean);
+  $("#chips").innerHTML = chips.map(c=>`<span>${c}</span>`).join('<span class="sep">·</span>');
+
   if(S.lang==="id" && (S.noTrans||S.trAvail==="noapi"||S.trAvail==="unavailable")){
-    $("#note").innerHTML=`<div class="note">🌐 Terjemahan otomatis judul belum aktif di browser ini. Gunakan fitur terjemahan bawaan browser: <b>klik kanan di halaman → "Terjemahkan ke Bahasa Indonesia"</b> (di Brave/Chrome; lakukan setelah daftar berita muncul). Seluruh isi halaman termasuk judul berita akan diterjemahkan.</div>`;
+    $("#note").innerHTML=`<div class="note">Terjemahan otomatis belum aktif di browser ini. Pakai fitur bawaan browser: <b>klik kanan di halaman → "Terjemahkan ke Bahasa Indonesia"</b> (Chrome/Edge), lakukan setelah berita muncul.</div>`;
   }else{
     $("#note").innerHTML="";
   }
-}
-
-async function translate(ids){
-  if(!S.data) return;
-  const arts=S.data.articles;
-  const pending=[];
-  ids.forEach(id=>{
-    if(S.trCache[id]){
-      const a=arts.find(x=>x.id===id);
-      if(a) a.title_id=S.trCache[id];
-    }else if(!S.translating.has(id)){
-      pending.push(id);
-      S.translating.add(id);
-    }
-  });
-  if(pending.length) render();
-  if(!pending.length){renderHeader();return;}
-  const need=[];
-  pending.forEach(id=>{
-    const a=arts.find(x=>x.id===id);
-    if(!a) return;
-    if((a.lang||"")==="id"){
-      a.title_id=a.title;
-      S.trCache[id]=a.title;
-    }else{
-      need.push(a);
-    }
-  });
-  if(!need.length){
-    pending.forEach(i=>S.translating.delete(i));
-    trSave(); render(); renderHeader(); return;
-  }
-  const tr=await getTranslator();
-  if(!tr){
-    S.noTrans=true;
-    pending.forEach(i=>S.translating.delete(i));
-    render(); renderHeader();
-    return;
-  }
-  for(const a of need){
-    try{
-      const out=await tr.translate(a.title);
-      a.title_id=(out||"").trim()||a.title;
-    }catch(e){
-      a.title_id=a.title;
-    }
-    S.trCache[a.id]=a.title_id;
-    S.translating.delete(a.id);
-  }
-  S.noTrans=false;
-  trSave(); render(); renderHeader();
-}
-
-function ensureTr(){
-  if(S.lang!=="id" || !S.data) return;
-  const ids=visible().filter(a=>!a.title_id).slice(0,40).map(a=>a.id);
-  if(ids.length) translate(ids);
 }
 
 async function poll(force){
   try{
     const r=await fetch("/api/news",force?{cache:"no-store"}:{});
     const d=await r.json();
-    S.data=d;
-    S.noTrans=false;
-    (d.articles||[]).forEach(a=>{
-      if(S.trCache[a.id]) a.title_id=S.trCache[a.id];
-    });
+    S.data=d; S.noTrans=false;
+    (d.articles||[]).forEach(a=>{ if(S.trCache[a.id]) a.title_id=S.trCache[a.id] });
     renderHeader(); renderTabs(); renderGenres(); render(); ensureTr();
-  }catch(e){}
+  }catch(e){
+    if(!S.data) $("#sub").textContent="Gagal memuat berita — tekan Segarkan untuk mencoba lagi.";
+  }
 }
 
-$("#q").oninput=e=>{S.q=e.target.value.trim();render();ensureTr()};
-$("#sort").onchange=e=>{S.sort=e.target.value;render();ensureTr()};
+/* ---------- kontrol ---------- */
+$("#q").oninput=e=>{ S.q=e.target.value.trim(); S.limit=PAGE; render(); ensureTr() };
+$("#sort").onchange=e=>{ S.sort=e.target.value; S.limit=PAGE; render(); ensureTr() };
+$("#more").onclick=()=>{ S.limit+=PAGE; render(); ensureTr() };
 $("#langBtn").onclick=()=>{
   S.lang = S.lang==="id" ? "orig" : "id";
   const b=$("#langBtn");
-  b.classList.toggle("active",S.lang==="id");
-  b.textContent = S.lang==="id" ? "🌍 Bahasa Asli" : "🇮🇩 Indonesia";
-  render(); ensureTr(); renderHeader();
+  b.classList.toggle("on",S.lang==="id");
+  b.textContent = S.lang==="id" ? "🌍 Asli" : "🇮🇩 ID";
+  render(); renderHeader(); ensureTr();
 };
 $("#refreshBtn").onclick=async()=>{
-  $("#refreshBtn").disabled=true;
-  $("#refreshBtn").innerHTML='<span class="dot"></span> Mengambil...';
+  const b=$("#refreshBtn");
+  b.disabled=true; b.innerHTML='<span class="dot"></span>Mengambil';
   await poll(true);
-  $("#refreshBtn").disabled=false;
-  $("#refreshBtn").innerHTML="🔄 Segarkan";
+  b.disabled=false; b.textContent="Segarkan";
 };
+
 trLoad();
+skeleton();
 (async()=>{
   if("Translator" in self){
-    try{
-      S.trAvail = await Translator.availability({sourceLanguage:"en", targetLanguage:"id"});
-    }catch(e){
-      S.trAvail = "unavailable";
-    }
+    try{ S.trAvail = await Translator.availability({sourceLanguage:"en", targetLanguage:"id"}) }
+    catch(e){ S.trAvail = "unavailable" }
   }else{
     S.trAvail = "noapi";
   }
