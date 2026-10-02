@@ -33,10 +33,19 @@
   .chip.ai{border-color:#2f6b4a;color:#7ce0a8}
   .chip.kw{border-color:#5a4a1e;color:#f0cf7a}
   nav{display:flex;gap:6px;overflow-x:auto;padding:10px 16px 0;border-bottom:1px solid var(--line)}
-  nav button{white-space:nowrap;background:transparent;border:none;color:var(--muted);
+  nav button{white-space:nowrap;flex:0 0 auto;background:transparent;border:none;color:var(--muted);
     padding:8px 12px;border-radius:9px 9px 0 0;border-bottom:2px solid transparent}
   nav button.active{color:var(--text);background:#11161f;border-bottom:2px solid var(--accent)}
   nav .n{opacity:.6;font-size:11px;margin-left:5px}
+  nav#genres{padding:7px 16px;border-bottom:1px solid var(--line);background:#0d121a}
+  nav#genres button{padding:5px 10px;border-radius:99px;border:1px solid var(--line);
+    background:var(--card2);font-size:12px;color:var(--muted)}
+  nav#genres button.active{background:var(--gcolor,var(--accent));border-color:var(--gcolor,var(--accent));
+    color:#06121f;font-weight:600}
+  nav#genres .lbl{font-size:10.5px;letter-spacing:.6px;color:var(--muted);
+    align-self:center;margin-right:2px;flex:0 0 auto}
+  .gtags{display:flex;gap:5px;flex-wrap:wrap}
+  .gtag{font-size:10.5px;padding:2px 7px;border-radius:99px;font-weight:600}
   main{padding:14px 16px 60px}
   .grid{display:grid;gap:11px;grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
   article{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--bg2);
@@ -76,6 +85,7 @@
   <div class="chips" id="chips"></div>
 </header>
 <nav id="tabs"></nav>
+<nav id="genres"></nav>
 <div id="note"></div>
 <main>
   <div class="grid" id="grid"></div>
@@ -84,6 +94,10 @@
 <script>
 const CATSTYLE = {
   GENTING:{label:"Genting / Urgent",color:"#ff4d4d"},
+  GAME:{label:"Game / Update",color:"#35d07f"},
+  ESPORTS:{label:"Esports",color:"#ff7ac6"},
+  REVIEW_GAME:{label:"Review Game",color:"#ff9f43"},
+  HARDWARE:{label:"Hardware Gaming",color:"#22d3ee"},
   POLITIK_ID:{label:"Politik Dalam Negeri",color:"#4da6ff"},
   POLITIK_INT:{label:"Politik Internasional",color:"#8a6dff"},
   TRADER:{label:"Trader / Pasar",color:"#ffc14d"},
@@ -91,7 +105,7 @@ const CATSTYLE = {
 };
 const TR_CACHE_KEY = "dbd_translations_v1";
 const TR_CACHE_TTL = 14*24*3600*1000;
-const S = {data:null, tab:"ALL", sort:"hot", lang:"orig", q:"", translating:new Set(), noTrans:false, trCache:{}, trAvail:"unknown"};
+const S = {data:null, tab:"ALL", genre:"", sort:"hot", lang:"orig", q:"", translating:new Set(), noTrans:false, trCache:{}, trAvail:"unknown"};
 
 let _trInst = null;
 async function getTranslator(){
@@ -153,13 +167,41 @@ function renderTabs(){
     `<button data-tab="${code}" class="${S.tab===code?"active":""}">
       ${code==="ALL"?"🗂️":""} ${label}<span class="n">${counts[code]||0}</span></button>`).join("");
   $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    S.tab=b.dataset.tab; renderTabs(); render(); ensureTr();
+    S.tab=b.dataset.tab; renderTabs(); renderGenres(); render(); ensureTr();
+  });
+}
+
+function GENRE(code){
+  return (S.data?.genres||[]).find(g=>g.code===code)||{code,label:code,color:"#8d97a8"};
+}
+
+// Genre jadi sub-filter dari tab: dihitung hanya di dalam tab aktif supaya
+// angkanya tidak menyesatkan, dan kombinasi kategori+genre yang kosong
+// otomatis tampil pesan "tidak ada berita".
+function renderGenres(){
+  const d=S.data, box=$("#genres");
+  if(!d){box.innerHTML="";return}
+  const base = S.tab==="ALL" ? d.articles : d.articles.filter(a=>a.category===S.tab);
+  const counts={};
+  base.forEach(a=>(a.genres||[]).forEach(g=>counts[g]=(counts[g]||0)+1));
+  const chips=[["","Semua Genre","#4da6ff",base.length]]
+    .concat((d.genres||[]).map(g=>[g.code,g.label,g.color,counts[g.code]||0]));
+  // Kalau tab aktif tidak punya satu pun artikel ber-genre, barisnya
+  // disembunyikan supaya tidak menampilkan angka 0 semua.
+  const total=Object.values(counts).reduce((x,y)=>x+y,0);
+  if(S.tab!=="ALL" && total===0){S.genre="";box.innerHTML="";return}
+  box.innerHTML = `<span class="lbl">GENRE</span>` + chips.map(([code,label,color,n])=>
+    `<button data-genre="${code}" class="${S.genre===code?"active":""}" style="--gcolor:${color}"
+      >${label}<span class="n">${n}</span></button>`).join("");
+  box.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    S.genre=b.dataset.genre; renderGenres(); render();
   });
 }
 
 function visible(){
   let list = (S.data?.articles)||[];
   if(S.tab!=="ALL") list = list.filter(a=>a.category===S.tab);
+  if(S.genre) list = list.filter(a=>(a.genres||[]).includes(S.genre));
   if(S.q){
     const q=S.q.toLowerCase();
     list = list.filter(a=>(shown(a)+" "+a.source).toLowerCase().includes(q));
@@ -179,8 +221,13 @@ function card(a){
   const lg = a.lang==="en" ? ' lang="en" translate="yes"' : "";
   const el=document.createElement("article");
   el.style.borderLeftColor=cs.color;
+  const tags=(a.genres||[]).slice(0,4).map(c=>{
+    const g=GENRE(c);
+    return `<span class="gtag" style="background:${g.color}22;color:${g.color}">${esc(g.label)}</span>`;
+  }).join("");
   el.innerHTML=`
     <span class="badge" style="background:${cs.color}22;color:${cs.color}">${cs.label}</span>
+    ${tags?`<div class="gtags">${tags}</div>`:""}
     <a class="title"${lg} href="${esc(a.url)}" target="_blank" rel="noopener">${esc(t)}</a>
     ${a.desc?`<div class="desc"${lg}>${esc(a.desc.slice(0,150))}</div>`:""}
     <div class="meta">
@@ -203,9 +250,12 @@ function card(a){
 function render(){
   const list=visible();
   grid.innerHTML="";
-  list.slice(0,120).forEach(a=>grid.appendChild(card(a)));
+  list.slice(0,300).forEach(a=>grid.appendChild(card(a)));
   $("#empty").style.display = list.length ? "none" : "block";
-  if(list.length===0) $("#empty").textContent = S.data ? "Tidak ada berita di kategori ini." : "Sedang mengambil berita dari seluruh dunia...";
+  if(list.length===0) $("#empty").textContent = S.data
+    ? (S.genre ? `Tidak ada berita ${GENRE(S.genre).label} di ${(CATSTYLE[S.tab]||{label:"kategori ini"}).label}.`
+               : "Tidak ada berita di kategori ini.")
+    : "Sedang mengambil berita dari seluruh dunia...";
 }
 
 function renderHeader(){
@@ -304,7 +354,7 @@ async function poll(force){
     (d.articles||[]).forEach(a=>{
       if(S.trCache[a.id]) a.title_id=S.trCache[a.id];
     });
-    renderHeader(); renderTabs(); render(); ensureTr();
+    renderHeader(); renderTabs(); renderGenres(); render(); ensureTr();
   }catch(e){}
 }
 
