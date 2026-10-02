@@ -18,6 +18,22 @@ CATS = [
     ("ESPORTS", "Esports", "#ff7ac6"),
     ("REVIEW_GAME", "Review Game", "#ff9f43"),
     ("HARDWARE", "Hardware Gaming", "#22d3ee"),
+    ("BOLA", "Sepak Bola", "#34d399"),
+    ("BOLA_LIGA", "Liga & Kompetisi", "#818cf8"),
+    ("BOLA_TRANSFER", "Transfer", "#fb923c"),
+    ("BOLA_NASIONAL", "Timnas & Liga 1", "#e879f9"),
+    ("CYBER_VULN", "Kerentanan & CVE", "#facc15"),
+    ("CYBER_MALWARE", "Malware & Ransomware", "#ef4444"),
+    ("CYBER_APT", "Threat Intel & APT", "#a855f7"),
+    ("CYBER_BREACH", "Kebocoran Data", "#f472b6"),
+    ("CYBER_BUG", "Bug Bounty & Pentest", "#c084fc"),
+    ("CYBER_TOOL", "Tool Offensive & Red Team", "#22d3ee"),
+    ("CYBER_BLUE", "Blue Team / DFIR / SOC", "#38bdf8"),
+    ("CYBER_CLOUD", "Cloud & Container", "#2dd4bf"),
+    ("CYBER_APP", "AppSec & Web", "#4ade80"),
+    ("CYBER_RE", "Reverse Engineering", "#fb923c"),
+    ("CYBER_AI", "AI Security", "#818cf8"),
+    ("CYBER_GRC", "Regulasi & GRC", "#94a3b8"),
     ("POLITIK_ID", "Politik Dalam Negeri", "#4da6ff"),
     ("POLITIK_INT", "Politik Internasional", "#8a6dff"),
     ("TRADER", "Trader / Pasar", "#ffc14d"),
@@ -26,11 +42,33 @@ CATS = [
 
 # Kategori yang hanya boleh diisi oleh sumber bertopic game
 GAME_CATS = ["GAME", "ESPORTS", "REVIEW_GAME", "HARDWARE"]
+# Kategori yang hanya boleh diisi oleh sumber bertopic bola
+BOLA_CATS = ["BOLA", "BOLA_LIGA", "BOLA_TRANSFER", "BOLA_NASIONAL"]
+# Kategori yang hanya boleh diisi oleh sumber bertopic cyber
+CYBER_CATS = ["CYBER_VULN", "CYBER_MALWARE", "CYBER_APT", "CYBER_BREACH",
+              "CYBER_BUG", "CYBER_TOOL", "CYBER_BLUE", "CYBER_CLOUD",
+              "CYBER_APP", "CYBER_RE", "CYBER_AI", "CYBER_GRC"]
+
+# Porsi jatah artikel akhir tiap keluarga topik. Tanpa ini, keluarga dengan
+# sumber paling rame akan memakan seluruh kuota dan tab lain kosong.
+# Cyber dapat porsi besar karena 12 bidang harus tetap terisi.
+FAMILY_SHARE = {"other": 0.10, "game": 0.24, "bola": 0.24, "cyber": 0.42}
+
+
+def family_of(cat):
+    if cat in GAME_CATS:
+        return "game"
+    if cat in BOLA_CATS:
+        return "bola"
+    if cat in CYBER_CATS:
+        return "cyber"
+    return "other"
+
 
 # Batas jumlah artikel akhir per kategori supaya tiap tab berisi.
-# Genre butuh ruang lebih: 23 genre harus tetap punya isinya setelah
-# pengimbangan kategori, jadi kuota per kategori dilonggarkan.
-MAX_ARTICLES = 520
+# 23 genre + 4 tab bola + 12 tab cyber harus tetap punya isinya setelah
+# pengimbangan, jadi kuota total dinaikkan dan plafon per kategori dilonggarkan.
+MAX_ARTICLES = 960
 MAX_PER_CAT = 90
 
 SOURCES = [
@@ -364,6 +402,403 @@ for _gname, _gcode, _q in GENRE_QUERIES:
         "boost": 6,
     })
 
+# =====================================================================
+# BERITA SEPAK BOLA (Indonesia + internasional)
+# =====================================================================
+# Hampir semua klub besar TIDAK punya RSS publik (dihapus atau 403), jadi
+# tiga lapis sumber dipakai:
+#   1. Media yang RSS-nya benar-benar hidup dan sudah diuji.
+#   2. Channel YouTube resmi klub/liga/pemain (first-party, paling cepat).
+#   3. Google News per subjek, supaya klub besar dan pemain individu tetap
+#      ter-covered walau tidak punya feed sendiri.
+
+# --- 1. Media (semua diuji hidup) ---
+BOLA_MEDIA = [
+    ("BBC Football", "https://feeds.bbci.co.uk/sport/football/rss.xml", "WORLD", "en", 12),
+    ("The Guardian Football", "https://www.theguardian.com/football/rss", "WORLD", "en", 12),
+    ("90min", "https://www.90min.com/posts.rss", "WORLD", "en", 10),
+    ("Sky Sports Football", "https://www.skysports.com/rss/12040", "WORLD", "en", 11),
+    ("Yahoo Soccer", "https://sports.yahoo.com/soccer/rss", "WORLD", "en", 9),
+    ("Standard Football", "https://www.standard.co.uk/sport/football/rss", "WORLD", "en", 10),
+    ("Kicker", "https://newsfeed.kicker.de/news/aktuell", "WORLD", "de", 10),
+    ("Planet Football", "https://www.planetfootball.com/feed/", "WORLD", "en", 8),
+    ("Bundesliga", "https://www.bundesliga.com/en/bundesliga/news/rss", "WORLD", "en", 12),
+    ("CNN Indonesia", "https://www.cnnindonesia.com/rss", "ID", "id", 8),
+    ("detikSport", "https://sport.detik.com/rss", "ID", "id", 8),
+    ("Sindonews", "https://www.sindonews.com/rss/Sport", "ID", "id", 7),
+    ("Tribun", "https://www.tribunnews.com/rss", "ID", "id", 7),
+    ("Nusantara Post", "https://nusantarapost.id/feed/", "ID", "id", 6),
+]
+
+# --- 2. YouTube resmi (channel_id diverifikasi lewat halaman channel,
+#        bukan hasil tebakan; tiap baris hanya yang nama channel aslinya
+#        cocok - mis. @AVWC bukan Aston Villa, @LaLiga bukan Liga resmi) ---
+BOLA_CHANNELS = [
+    ("FIFA", "UCpcTrCXblq78GZrTUTLWeBw", 14),
+    ("UEFA", "UCyGa1YEx9ST66rYrJTGIKOw", 14),
+    ("Premier League", "UCG5qGWdu8nIRZqJ_GgDwQ-w", 13),
+    ("Serie A", "UCBJeMCIeLQos7wacox4hmLQ", 13),
+    ("Ligue 1", "UCQsH5XtIc9hONE1BQjucM0g", 12),
+    ("Bundesliga", "UC6UL29enLNe4mqwTfAyeNuw", 12),
+    ("Liverpool FC", "UC9LQwHZoucFT94I2h6JOcjw", 13),
+    ("Arsenal", "UCpryVRk_VDudG8SHXgWcG0w", 13),
+    ("Manchester United", "UC6yW44UGJJBvYTlfC7CRg2Q", 13),
+    ("Real Madrid", "UCWV3obpZVGgJ3j9FVhEjF2Q", 13),
+    ("FC Barcelona", "UC14UlmYlSNiQCBe9Eookf_A", 13),
+    ("Juventus", "UCLzKhsxrExAC6yAdtZ-BOWw", 13),
+    ("Inter", "UCvXzEblUa0cfny4HAJ_ZOWw", 13),
+    ("Tottenham", "UCEg25rdRZXg32iwai6N6l0w", 13),
+    ("Chelsea", "UCU2PacFf99vhb3hNiYDmxww", 13),
+    ("Borussia Dortmund", "UCK8rTVgp3-MebXkmeJcQb1Q", 12),
+    ("FC Bayern", "UCZkcxFIsqW5htimoUQKA0iA", 13),
+    ("Paris Saint-Germain", "UCt9a_qP9CqHCNwilf-iULag", 13),
+    ("Ajax", "UCGpf7WX7R1one-NwOvg_PbQ", 11),
+    ("Celtic", "UCBN-bb-hE7jYlcp4exwXRsQ", 11),
+    ("Newcastle", "UCywGl_BPp9QhD0uAcP2HsJw", 12),
+    ("Nottingham Forest", "UCyAxjuAr8f_BFDGCO3Htbxw", 12),
+    ("AS Roma", "UCLttSYJ6kPtlcurY96kXkQw", 12),
+    ("Feyenoord", "UCg_DGzRRIQlXpHxCrMMiAIQ", 11),
+    ("Sevilla FC", "UCLy9lmj_0cqffXUzbGHNmYA", 11),
+    ("Galatasaray", "UCQpeujIamj2ZOKXZnrxTRhA", 11),
+    ("Al Ahly", "UCA86pBGxVPZGrTeTecOtjew", 11),
+    ("Al Nassr", "UCTgtmWmcSm21GLcFYwkfXvA", 11),
+]
+
+# --- 3. Google News per subjek ---
+# Query pakai when:7d supaya isinya benar-benar yang terbaru; tanpa itu
+# Google News mengembalikan artikel lama yang tak pernah tenggelam.
+BOLA_QUERIES = [
+    # Indonesia
+    ("NASIONAL", "Timnas Indonesia", "Timnas Indonesia OR PSSI", 12),
+    ("NASIONAL", "Liga 1 Indonesia", '"Liga 1" OR "Liga 2" Indonesia', 11),
+    ("NASIONAL", "Bola Indonesia", '"Liga Indonesia" OR "sepak bola Indonesia"', 10),
+    ("NASIONAL", "Piala Asia Timnas", '"Piala Asia" OR "ASEAN Cup" Indonesia', 10),
+    # Klub Indonesia (per perusahaan)
+    ("NASIONAL", "Persib Bandung", '"Persib Bandung"', 11),
+    ("NASIONAL", "Persija Jakarta", '"Persija Jakarta"', 11),
+    ("NASIONAL", "Persebaya", '"Persebaya"', 10),
+    ("NASIONAL", "Arema", '"Arema" OR "Arema FC"', 10),
+    ("NASIONAL", "Bali United", '"Bali United"', 10),
+    ("NASIONAL", "PSM Makassar", '"PSM Makassar"', 10),
+    ("NASIONAL", "Persipura", '"Persipura"', 9),
+    ("NASIONAL", "Persela Solo", '"Persela"', 9),
+    # Pemain & pelatih Indonesia (per orang)
+    ("NASIONAL", "Marselino Ferdinan", '"Marselino Ferdinan"', 10),
+    ("NASIONAL", "Jay Idzes", '"Jay Idzes"', 10),
+    ("NASIONAL", "Ragnar Oratmangoen", '"Ragnar Oratmangoen" OR "Ragnar"', 9),
+    ("NASIONAL", "Justin Hubner", '"Justin Hubner"', 9),
+    ("NASIONAL", "Sandy Walsh", '"Sandy Walsh"', 9),
+    ("NASIONAL", "Asnawi Miftah", '"Asnawi"', 9),
+    # Kompetisi internasional
+    ("LIGA", "Liga Champions", '"Liga Champions" OR "Champions League"', 12),
+    ("LIGA", "Premier League", '"Premier League"', 12),
+    ("LIGA", "La Liga", '"La Liga" OR "Liga BBVA"', 11),
+    ("LIGA", "Serie A", '"Serie A" Italia', 11),
+    ("LIGA", "Bundesliga", 'Bundesliga', 11),
+    ("LIGA", "Ligue 1", '"Ligue 1" OR "French football"', 11),
+    ("LIGA", "Piala Dunia 2026", '"World Cup 2026" OR "Piala Dunia 2026"', 12),
+    ("LIGA", "Piala Europa", '"Europa League" OR "Conference League"', 10),
+    ("LIGA", "Piala Klub Dunia", '"Club World Cup"', 9),
+    # Klub besar
+    ("BOLA", "Manchester United", '"Manchester United" OR "Man Utd"', 12),
+    ("BOLA", "Liverpool", '"Liverpool"', 12),
+    ("BOLA", "Real Madrid", '"Real Madrid"', 12),
+    ("BOLA", "Barcelona", '"Barcelona" football OR "FC Barcelona"', 12),
+    ("BOLA", "Bayern Munich", '"Bayern Munich" OR "Bayern Munchen"', 11),
+    ("BOLA", "Inter Milan", '"Inter Milan" OR "Inter de Milan"', 11),
+    ("BOLA", "Arsenal", '"Arsenal"', 11),
+    ("BOLA", "Chelsea", '"Chelsea"', 10),
+    ("BOLA", "PSG", '"Paris Saint-Germain" OR PSG', 11),
+    ("BOLA", "Juventus", '"Juventus"', 10),
+    # Pemain (per orang)
+    ("BOLA", "Cristiano Ronaldo", '"Cristiano Ronaldo" OR CR7', 12),
+    ("BOLA", "Lionel Messi", '"Lionel Messi" OR Messi', 12),
+    ("BOLA", "Erling Haaland", '"Erling Haaland" OR Haaland', 10),
+    ("BOLA", "Mohamed Salah", '"Mohamed Salah"', 10),
+    ("BOLA", "Kylian Mbappe", '"Kylian Mbappe"', 10),
+    ("BOLA", "Vinicius Junior", '"Vinicius Junior" OR "Vinicius Juniors"', 10),
+    ("BOLA", "Jude Bellingham", '"Jude Bellingham"', 9),
+    ("BOLA", "Harry Kane", '"Harry Kane"', 9),
+    # Transfer
+    ("TRANSFER", "Bursa Transfer", '"transfer" ("Premier League" OR "La Liga" OR Serie A)', 12),
+    ("TRANSFER", "Jual Beli Pemain", '"jual beli" pemain OR "rekrut" pemain sepak bola', 11),
+]
+
+for _nm, _url, _cc, _lg, _bs in BOLA_MEDIA:
+    SOURCES.append({
+        "name": _nm, "url": _url, "country": _cc, "lang": _lg,
+        "topic": "bola", "boost": _bs,
+    })
+
+for _nm, _cid, _bs in BOLA_CHANNELS:
+    SOURCES.append({
+        "name": "YT " + _nm,
+        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=" + _cid,
+        "kind": "atom", "country": "WORLD", "lang": "en",
+        "topic": "bola", "boost": _bs,
+    })
+
+for _cat, _nm, _q, _bs in BOLA_QUERIES:
+    SOURCES.append({
+        "name": "Bola " + _nm,
+        "url": "https://news.google.com/rss/search?q="
+               + urllib.parse.quote(_q + " when:7d") + "&hl=id&gl=ID&ceid=ID:id",
+        "country": "ID", "lang": "id",
+        "topic": "bola", "bola_cat": _cat, "boost": _bs,
+    })
+
+# ===================================================================
+# Keamanan siber
+# ===================================================================
+# Satu-satunya sumber tool yang benar-benar bisa diandalkan adalah feed
+# rilis resmi proyeknya sendiri (GitHub releases.atom). Google News untuk
+# query "tool baru" hampir kosong atau noisy, jadi feed rilis resmi proyek
+# yang diandalkan; Google News hanya menambah liputan media.
+
+# --- 1. Media & riset (nama, url, kategori, boost) ---
+# kategori = None berarti routing per artikel pakai kata kunci (media umum
+# yang membahas banyak bidang sekaligus).
+CYBER_MEDIA = [
+    # Liputan keamanan harian (umum, routing per artikel)
+    ("The Hacker News", "https://feeds.feedburner.com/TheHackersNews", None, 10),
+    ("BleepingComputer", "https://www.bleepingcomputer.com/feed/", None, 10),
+    ("SecurityWeek", "https://www.securityweek.com/feed/", None, 9),
+    ("The Record", "https://therecord.media/feed", None, 10),
+    ("Dark Reading", "https://www.darkreading.com/rss.xml", None, 8),
+    ("Help Net Security", "https://www.helpnetsecurity.com/feed/", None, 8),
+    ("Security Affairs", "https://securityaffairs.com/feed", None, 8),
+    ("Graham Cluley", "https://grahamcluley.com/feed/", None, 8),
+    ("Microsoft Security", "https://www.microsoft.com/en-us/security/blog/feed/", None, 8),
+    ("Google Security Blog", "https://security.googleblog.com/feeds/posts/default", None, 8),
+    ("GitHub Blog", "https://github.blog/feed/", None, 7),
+    # Vendor & riset (spesifik satu bidang)
+    ("Schneier on Security", "https://www.schneier.com/feed/atom/", "CYBER_GRC", 8),
+    ("Krebs on Security", "https://krebsonsecurity.com/feed/", "CYBER_BREACH", 10),
+    ("WeLiveSecurity", "https://www.welivesecurity.com/en/rss/feed/", "CYBER_MALWARE", 9),
+    ("Securelist", "https://securelist.com/feed/", "CYBER_MALWARE", 9),
+    ("Malwarebytes Labs", "https://www.malwarebytes.com/blog/feed/", "CYBER_MALWARE", 9),
+    ("Avast Blog", "https://blog.avast.com/feed", "CYBER_MALWARE", 7),
+    ("Recorded Future", "https://www.recordedfuture.com/feed", "CYBER_APT", 8),
+    ("Red Canary", "https://redcanary.com/blog/feed/", "CYBER_BLUE", 8),
+    ("CrowdStrike", "https://www.crowdstrike.com/blog/feed/", "CYBER_APT", 8),
+    ("SentinelOne Labs", "https://www.sentinelone.com/labs/feed/", "CYBER_APT", 8),
+    ("Horizon3", "https://horizon3.ai/feed/", "CYBER_VULN", 8),
+    ("Check Point Research", "https://research.checkpoint.com/feed/", "CYBER_APT", 9),
+    ("Unit 42", "https://unit42.paloaltonetworks.com/feed/", "CYBER_APT", 9),
+    ("Google Cloud TI", "https://cloudblog.withgoogle.com/topics/threat-intelligence/rss/", "CYBER_APT", 8),
+    ("Google Project Zero", "https://googleprojectzero.blogspot.com/feeds/posts/default", "CYBER_VULN", 12),
+    ("Chrome Releases", "https://chromereleases.googleblog.com/feeds/posts/default", "CYBER_VULN", 8),
+    ("Exploit-DB", "https://www.exploit-db.com/rss.xml", "CYBER_VULN", 10),
+    ("Wiz Research", "https://www.wiz.io/blog/rss.xml", "CYBER_CLOUD", 9),
+    ("AWS Security Blog", "https://aws.amazon.com/blogs/security/feed/", "CYBER_CLOUD", 8),
+    ("Snyk Blog", "https://snyk.io/blog/feed", "CYBER_APP", 8),
+    ("PortSwigger Research", "https://portswigger.net/research/rss", "CYBER_APP", 12),
+    ("SANS ISC", "https://isc.sans.edu/rssfeed_full.xml", "CYBER_BLUE", 9),
+    ("InfoSec Writeups", "https://infosecwriteups.com/feed", "CYBER_BUG", 9),
+    ("Hacking Articles", "https://www.hackingarticles.in/feed/", "CYBER_BUG", 9),
+    ("Kali Linux News", "https://www.kali.org/feed/", "CYBER_TOOL", 9),
+    ("Trail of Bits", "https://blog.trailofbits.com/feed/", "CYBER_RE", 10),
+    ("Binarly", "https://www.binarly.io/blog/rss.xml", "CYBER_RE", 9),
+    ("ANY.RUN", "https://any.run/cybersecurity-blog/feed/", "CYBER_RE", 9),
+    ("Virus Bulletin", "https://www.virusbulletin.com/rss", "CYBER_MALWARE", 8),
+    ("MalwareTips", "https://malwaretips.com/forums/-/index.rss", "CYBER_MALWARE", 7),
+]
+
+# --- 1b. Media sosial & komunitas (nama, url, kategori, boost) ---
+# Mastodon punya RSS resmi per akun (stabil, tanpa API key). X/Twitter,
+# Bluesky, TikTok, IG, FB tidak punya RSS resmi -> tidak dipakai.
+# `social: True` menandai feed yang isinya pendek/deskripsi = postingan.
+CYBER_SOCIAL = [
+    ("Mastodon @briankrebs", "https://infosec.exchange/@briankrebs.rss", "CYBER_BREACH", 10),
+    ("Mastodon @malwaretech", "https://infosec.exchange/@malwaretech.rss", "CYBER_MALWARE", 10),
+    ("Mastodon @SwiftOnSecurity", "https://infosec.exchange/@SwiftOnSecurity.rss", "CYBER_BLUE", 9),
+    ("Mastodon @cyb3rops", "https://infosec.exchange/@cyb3rops.rss", "CYBER_BLUE", 9),
+    ("Mastodon @thegrugq", "https://infosec.exchange/@thegrugq.rss", "CYBER_APT", 9),
+    ("Mastodon @hacks4pancakes", "https://infosec.exchange/@hacks4pancakes.rss", "CYBER_BLUE", 9),
+    ("Mastodon @malwarejake", "https://infosec.exchange/@malwarejake.rss", "CYBER_BLUE", 8),
+    ("Mastodon @lcamtuf", "https://infosec.exchange/@lcamtuf.rss", "CYBER_VULN", 9),
+    ("Mastodon @0xabad1dea", "https://infosec.exchange/@0xabad1dea.rss", "CYBER_APP", 8),
+    ("Mastodon @JackRhysider", "https://infosec.exchange/@JackRhysider.rss", "CYBER_MALWARE", 8),
+    ("Mastodon @k8em0", "https://infosec.exchange/@k8em0.rss", "CYBER_BUG", 8),
+    ("Mastodon @mubix", "https://infosec.exchange/@mubix.rss", "CYBER_TOOL", 8),
+    ("Mastodon @ryanaraine", "https://infosec.exchange/@ryanaraine.rss", "CYBER_APT", 8),
+    ("Mastodon @mattjay", "https://infosec.exchange/@mattjay.rss", "CYBER_APT", 8),
+    # Komunitas link (routing per artikel)
+    ("Lobsters Security", "https://lobste.rs/t/security.rss", None, 9),
+    ("Lobsters Privacy", "https://lobste.rs/t/privacy.rss", "CYBER_GRC", 8),
+    ("HN Security", "https://hnrss.org/newest?q=security&points=10", None, 8),
+    ("HN Vulnerability", "https://hnrss.org/newest?q=vulnerability", None, 8),
+    ("HN Ransomware", "https://hnrss.org/newest?q=ransomware", None, 8),
+    ("HN Reverse Engineering", "https://hnrss.org/newest?q=reverse%20engineering", None, 8),
+]
+
+# --- 2. Rilis tool resmi (nama, repo GitHub) ---
+# feeds/videos.xml tidak berlaku di sini: GitHub menyediakan releases.atom
+# per proyek, isinya persis versi + catatan rilis, dan selalu up-to-date.
+CYBER_TOOLS = [
+    ("nuclei", "projectdiscovery/nuclei"),
+    ("nuclei-templates", "projectdiscovery/nuclei-templates"),
+    ("httpx", "projectdiscovery/httpx"),
+    ("subfinder", "projectdiscovery/subfinder"),
+    ("katana", "projectdiscovery/katana"),
+    ("naabu", "projectdiscovery/naabu"),
+    ("interactsh", "projectdiscovery/interactsh"),
+    ("cloudlist", "projectdiscovery/cloudlist"),
+    ("Amass", "owasp-amass/amass"),
+    ("ffuf", "ffuf/ffuf"),
+    ("Metasploit", "rapid7/metasploit-framework"),
+    ("OWASP ZAP", "zaproxy/zaproxy"),
+    ("mitmproxy", "mitmproxy/mitmproxy"),
+    ("sqlmap", "sqlmapproject/sqlmap"),
+    ("nikto", "sullo/nikto"),
+    ("chisel", "jpillora/chisel"),
+    ("bettercap", "bettercap/bettercap"),
+    ("Sliver", "BishopFox/sliver"),
+    ("BloodHound", "SpecterOps/BloodHound"),
+    ("BBOT", "blacklanternsecurity/bbot"),
+    ("Impacket", "fortra/impacket"),
+    ("Semgrep", "semgrep/semgrep"),
+    ("gitleaks", "gitleaks/gitleaks"),
+    ("trufflehog", "trufflesecurity/trufflehog"),
+    ("SecLists", "danielmiessler/SecLists"),
+    ("PwnDoc", "pwndoc/pwndoc"),
+    ("CyberChef", "gchq/CyberChef"),
+    ("YARA", "VirusTotal/yara"),
+    ("Suricata", "OISF/suricata"),
+    ("Volatility", "volatilityfoundation/volatility3"),
+    ("Trivy", "aquasecurity/trivy"),
+    ("WPScan", "wpscanteam/wpscan"),
+    ("Juice Shop", "juice-shop/juice-shop"),
+]
+
+# --- 3. YouTube (channel_id sudah diverifikasi lewat halaman channel) ---
+CYBER_VIDEOS = [
+    ("NetworkChuck", "UC9x0AN7BWHpCDHSm9NiJFJQ", "CYBER_TOOL", 9),
+    ("John Hammond", "UCVeW9qkBjo3zosnqUbG7CFw", "CYBER_TOOL", 10),
+    ("SecurityNOW", "UCNbqa_9xihC8yaV2o6dlsUg", "CYBER_BLUE", 9),
+    ("HackerSploit", "UC0ZTPkdxlAKf-V33tqXwi3Q", "CYBER_TOOL", 10),
+    ("Bishop Fox", "UCE8o_Vx1nbvaGf_N0EsIgjg", "CYBER_BUG", 10),
+    ("SpecterOps", "UCWMKKqCCQkUjU8dIyiL1yhQ", "CYBER_TOOL", 9),
+    ("NCC Group", "UCiWMGVQt1pKZITUmGquSGDQ", "CYBER_VULN", 8),
+    ("Assetnote", "UCl9w-WcO9E-XAEtvWWuNPnw", "CYBER_VULN", 9),
+    ("NetSPI", "UCHUKizdbC44pUu_vcT5vlTQ", "CYBER_BUG", 10),
+    ("David Bombal", "UCP7WmQ_U4GB3K51Od9QvM0w", "CYBER_TOOL", 9),
+    ("IppSec", "UCa6eh7gCkpPo5XXUDfygQQA", "CYBER_BUG", 8),
+    ("PwnFunction", "UCW6MNdOsqv2E9AjQkv9we7A", "CYBER_APP", 9),
+    ("InsiderPhD", "UCPiN9NPjIer8Do9gUFxKv7A", "CYBER_BUG", 8),
+    ("Tricentis", "UCqeo7wfzxlv4SS8pJWhOHIQ", "CYBER_TOOL", 7),
+    ("LiveOverflow", "UClcE-kVhqyiHCcjYwcpfj9w", "CYBER_RE", 9),
+    ("sudo room", "UCe3DiJvItBa_DWWktd-ushA", "CYBER_TOOL", 8),
+]
+
+# --- 4. Google News (kategori, nama, query, locale, boost) ---
+CYBER_LOC = {"id": "&hl=id&gl=ID&ceid=ID:id", "en": "&hl=en-US&gl=US&ceid=US:en"}
+CYBER_QUERIES = [
+    # --- kerentanan & CVE ---
+    ("CYBER_VULN", "Zero-day", '"zero-day" OR "zero day" exploit', "en", 11),
+    ("CYBER_VULN", "Eksploitasi aktif", '"actively exploited" OR "exploited in the wild"', "en", 11),
+    ("CYBER_VULN", "Katalog CISA", '"known exploited" OR "added to the catalog"', "en", 10),
+    ("CYBER_VULN", "Patch perangkat", '"security update" OR "security patch" OR "security fix" (Chrome OR Windows OR Android OR iOS)', "en", 10),
+    ("CYBER_VULN", "Vendor besar", '(Microsoft OR Google OR Apple OR Cisco OR Fortinet OR "Palo Alto") (vulnerability OR "security advisory")', "en", 10),
+    ("CYBER_VULN", "Ivanti Citrix", '(Ivanti OR "Connect Secure" OR NetScaler OR Citrix) vulnerability', "en", 10),
+    ("CYBER_VULN", "Web & server", '(Apache OR Nginx OR OpenSSH OR "Linux kernel" OR Drupal) (vulnerability OR CVE)', "en", 9),
+    ("CYBER_VULN", "Aplikasi bisnis", '(Confluence OR Atlassian OR Salesforce OR SAP OR Oracle) (vulnerability OR CVE)', "en", 9),
+    ("CYBER_VULN", "Celah aplikasi ID", 'kerentanan OR "celah keamanan"', "id", 10),
+    # --- malware & ransomware ---
+    ("CYBER_MALWARE", "Ransomware", '(ransomware OR "data extortion") (campaign OR gang OR attack)', "en", 10),
+    ("CYBER_MALWARE", "Infostealer", '(infostealer OR "info stealer" OR "credential stealer")', "en", 9),
+    ("CYBER_MALWARE", "Botnet & DDoS", '(botnet OR DDoS OR "denial of service") (campaign OR takedown)', "en", 9),
+    ("CYBER_MALWARE", "Trojan & backdoor", '(trojan OR backdoor OR rootkit OR "remote access trojan") (malware OR campaign)', "en", 9),
+    ("CYBER_MALWARE", "Ransomware ID", 'ransomware Indonesia', "id", 9),
+    # --- threat intel & APT ---
+    ("CYBER_APT", "APT & nation-state", '("advanced persistent threat" OR "nation-state" OR "state-sponsored") (campaign OR attribution)', "en", 9),
+    ("CYBER_APT", "Threat actor", '("threat actor" OR "threat group" OR "cyber espionage") (campaign OR malware)', "en", 9),
+    ("CYBER_APT", "Vendor malware", '(Zimperium OR Kaspersky OR Mandiant OR "Check Point Research") (report OR research OR malware)', "en", 9),
+    ("CYBER_APT", "Badan & anjuran", '("CISA" OR ENISA OR "NCSC" OR "CERT-EU") (advisory OR warning OR urges OR report)', "en", 10),
+    ("CYBER_APT", "Keamanan siber ID", 'keamanan siber OR serangan siber', "id", 10),
+    # --- kebocoran data ---
+    ("CYBER_BREACH", "Data breach", '("data breach" OR "database leak" OR "records exposed") (announces OR confirms OR hacked)', "en", 9),
+    ("CYBER_BREACH", "Data pribadi bocor", '("personal data" OR "customer data") (leaked OR exposed OR stolen)', "en", 9),
+    ("CYBER_BREACH", "Data breach ID", '"data breach" Indonesia', "id", 10),
+    ("CYBER_BREACH", "Kebocoran data ID", '"kebocoran data" OR "data bocor"', "id", 9),
+    # --- bug bounty & pentest ---
+    ("CYBER_BUG", "Bug bounty", '"bug bounty" (program OR payout OR "new program")', "en", 10),
+    ("CYBER_BUG", "Platform bounty", '(HackerOne OR Bugcrowd OR YesWeHack OR Intigriti OR Patchstack) (bounty OR disclosure OR announce OR launch)', "en", 10),
+    ("CYBER_BUG", "Bounty besar", '("bug bounty" AND (Microsoft OR Google OR Apple OR Meta OR Mozilla)) (payout OR program OR scope)', "en", 10),
+    ("CYBER_BUG", "Red team", '("red team" OR "adversary simulation") (findings OR report OR campaign)', "en", 9),
+    ("CYBER_BUG", "Bug bounty ID", '"bug bounty" Indonesia', "id", 10),
+    ("CYBER_BUG", "Pentest ID", 'pentest OR penetration testing Indonesia', "id", 9),
+    # --- tool offensive & red team ---
+    ("CYBER_TOOL", "Exploit framework", '("Metasploit" OR "Burp Suite" OR "nuclei" OR "sqlmap" OR "impacket") ("new version" OR "update" OR "release")', "en", 10),
+    ("CYBER_TOOL", "C2 & payload", '("C2 framework" OR "C2 server" OR "command-and-control") (malware OR hacking OR "open source")', "en", 9),
+    ("CYBER_TOOL", "Fuzzing", '(fuzzing OR fuzzer OR "fuzz target") (tool OR "open source" OR release)', "en", 9),
+    ("CYBER_TOOL", "Komunitas offensive", '("SANS" OR "Offensive Security" OR "Hack The Box" OR TryHackMe) (report OR research OR tool OR release)', "en", 9),
+    # --- blue team / dfir / soc ---
+    ("CYBER_BLUE", "Blue team & DFIR", '("blue team" OR "incident response" OR "digital forensics" OR DFIR) (report OR tool OR technique)', "en", 9),
+    ("CYBER_BLUE", "Threat hunting", '("threat hunting" OR "threat detection" OR "detection engineering") (report OR tool OR rule)', "en", 9),
+    ("CYBER_BLUE", "Malware defense", '("endpoint detection" OR EDR OR SIEM) (detection OR rule OR report)', "en", 8),
+    # --- cloud & container ---
+    ("CYBER_CLOUD", "Cloud security", '("cloud security" OR "cloud misconfiguration") (AWS OR Azure OR "Google Cloud" OR Kubernetes)', "en", 9),
+    ("CYBER_CLOUD", "Supply chain", '("supply chain attack" OR "third-party breach" OR "update compromise")', "en", 9),
+    ("CYBER_CLOUD", "Kubernetes & container", '(Kubernetes OR Docker OR container) (vulnerability OR attack OR security)', "en", 9),
+    # --- appsec & web ---
+    ("CYBER_APP", "AppSec & OWASP", '(OWASP OR "application security" OR AppSec) (vulnerability OR tool OR report)', "en", 9),
+    ("CYBER_APP", "Web security", '("web security" OR XSS OR CSRF OR SSRF) (vulnerability OR attack)', "en", 9),
+    ("CYBER_APP", "API security", '("API security" OR "broken access control") (vulnerability OR attack)', "en", 8),
+    # --- reverse engineering ---
+    ("CYBER_RE", "Reverse engineering", '("reverse engineering" OR Ghidra OR IDA OR "binary analysis") (malware OR firmware OR analysis)', "en", 9),
+    ("CYBER_RE", "Malware analysis", '("malware analysis" OR "binary analysis" OR "static analysis") (report OR technique OR tool)', "en", 9),
+    ("CYBER_RE", "Disassembler & decompiler", '(Ghidra OR "IDA Pro" OR "Binary Ninja" OR decompiler OR disassembler)', "en", 8),
+    ("CYBER_RE", "Firmware reversing", '(firmware OR "reverse engineering") (extraction OR reversing OR unpacking)', "en", 8),
+    ("CYBER_RE", "Reverse engineering ID", 'reverse engineering OR "analisis malware"', "id", 8),
+    # --- AI security ---
+    ("CYBER_AI", "AI security", '("AI security" OR "LLM security" OR "prompt injection") (attack OR vulnerability OR research)', "en", 9),
+    ("CYBER_AI", "Ancaman AI", '("AI agent" OR LLM) (attack OR "prompt injection" OR exploitation) security', "en", 9),
+    ("CYBER_AI", "Deepfake & model", '(deepfake OR "model poisoning" OR "adversarial machine learning")', "en", 8),
+    # --- regulasi & GRC ---
+    ("CYBER_GRC", "Regulasi & compliance", '("cybersecurity regulation" OR "cyber regulation" OR "cyber compliance" OR GDPR OR NIS2 OR "ISO 27001" OR "data protection law")', "en", 9),
+    ("CYBER_GRC", "Kebijakan keamanan", '("cybersecurity policy" OR "cyber law" OR cybersecurity legislation) (government OR parliament)', "en", 8),
+    ("CYBER_GRC", "Regulasi ID", 'regulasi keamanan siber OR "UU PDP" OR "perlindungan data pribadi"', "id", 9),
+]
+
+for _nm, _url, _cat, _bs in CYBER_MEDIA:
+    SOURCES.append({
+        "name": _nm, "url": _url, "country": "WORLD", "lang": "en",
+        "topic": "cyber", "cyber_cat": _cat, "boost": _bs,
+    })
+
+for _nm, _url, _cat, _bs in CYBER_SOCIAL:
+    SOURCES.append({
+        "name": _nm, "url": _url, "country": "WORLD", "lang": "en",
+        "topic": "cyber", "cyber_cat": _cat, "social": True, "boost": _bs,
+    })
+
+for _nm, _repo in CYBER_TOOLS:
+    SOURCES.append({
+        "name": _nm,
+        "url": "https://github.com/" + _repo + "/releases.atom",
+        "country": "WORLD", "lang": "en",
+        "topic": "cyber", "cyber_cat": "CYBER_TOOL", "release": True, "boost": 10,
+    })
+
+for _nm, _cid, _cat, _bs in CYBER_VIDEOS:
+    SOURCES.append({
+        "name": _nm,
+        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=" + _cid,
+        "country": "WORLD", "lang": "en",
+        "topic": "cyber", "cyber_cat": _cat, "boost": _bs,
+    })
+
+for _cat, _nm, _q, _loc, _bs in CYBER_QUERIES:
+    SOURCES.append({
+        "name": "Cyber " + _nm,
+        "url": "https://news.google.com/rss/search?q="
+               + urllib.parse.quote(_q + " when:7d") + CYBER_LOC[_loc],
+        "country": "ID" if _loc == "id" else "WORLD",
+        "lang": _loc,
+        "topic": "cyber", "cyber_cat": _cat, "boost": _bs,
+    })
+
 GENTING_KW = [
     "perang", "serangan", "invasi", "rudal", "nuklir", "bom", "ledakan", "tewas",
     "korban jiwa", "darurat", "bencana", "gempa", "tsunami", "banjir bandang",
@@ -405,6 +840,181 @@ ID_HINT_WORDS = [
     "yang", "dengan", "untuk", "dalam", "akan", "presiden", "indonesia",
     "jakarta", "pemerintah", "sehingga", "karena", "oleh", "para",
 ]
+
+# --- Kata kunci sepak bola ---
+# Dipakai dengan pencocokan batas kata (count_genre_kw), bukan substring
+# biasa: "gol" ada di dalam "golongan", "tim" ada di dalam "timetable",
+# "liga" ada di dalam "religasi".
+BOLA_KW = [
+    "sepak bola", "bola", "football", "soccer", "kick-off", "kickoff",
+    "klub", "club", "timnas", "pemain", "pelatih", "wasit", "referee",
+    "gawang", "keeper", "kiper", "penalti", "kartu kuning", "kartu merah",
+    "pertandingan", "match", "skor", "liga", "stadium", "stadion", "suporter",
+    "fifa", "uefa", "conmebol", "the afc", "piala", "cup", "champions",
+    "manajer", "manager", "coach", "goal", "assist", "persib", "persija",
+    "persebaya", "persis", "arema", "bali united", "psm makassar", "persipura",
+    "persela", "dewa united", "garuda select", "pssi",
+]
+BOLA_LIGA_KW = [
+    "liga champions", "champions league", "premier league", "la liga",
+    "liga bbla", "serie a", "bundesliga", "ligue 1", "eredivisie",
+    "liga 1", "liga 2", "liga 3", "piala dunia", "world cup", "piala asia",
+    "piala euro", "euro 2024", "aff championship", "club world cup",
+    "piala klub dunia", "europa league", "conference league", "super league",
+    "isl", "mls", "saudi pro league", "piala antar tim", "liga champion",
+    "klasemen", "standings", "quarter-final", "semi final", "finalissima",
+]
+BOLA_TRANSFER_KW = [
+    "transfer", "jual beli", "rekrut", "merekrut", "mendatangkan",
+    "melepas", "dilepas", "loan", "pinjaman", "kontrak", "contract",
+    "gaji", "wage", "buyout", "klausul", "tawaran", "deal", "bergabung",
+    "pindah klub", "ganti klub", "free agent", "free transfer",
+    "biaya transfer", "uang transfer", "resmi rekrut", "resmi transferred",
+]
+BOLA_NASIONAL_KW = [
+    "timnas indonesia", "timnas", "pssi", "liga 1", "liga 2", "liga 3",
+    "indonesia u-17", "indonesia u-19", "indonesia u-20", "indonesia u-23",
+    "garuda select", "piala aff", "aff championship", "piala asia junior",
+    "piala dunia 2026 indonesia", "kualifikasi piala dunia",
+    "jadwal liga 1", "persib", "persija", "persebaya", "arema", "persis",
+    "bali united", "persipura", "persela solo", "dewa united", "psm makassar",
+    "bhayangkara", "madura united", "persebaya fifty", "aceh fc", "persikas",
+]
+
+# --- keamanan siber ---
+# Kata kunci inti. Dipakai sebagai sinyal "ini artikel cyber" untuk sumber
+# umum, dan sebagai penjaga anti-noise. Penentuan bidang ada di CYBER_FIELD_KW.
+CYBER_KW = [
+    "cybersecurity", "cyber security", "cyberattack", "cyber attack",
+    "vulnerability", "vulnerabilities", "exploit", "exploited", "exploitation",
+    "zero-day", "zero day", "malware", "ransomware", "backdoor", "trojan",
+    "botnet", "phishing", "infostealer", "stealer", "rootkit", "spyware",
+    "data breach", "data leak", "breach", "exfiltration", "ddos",
+    "penetration test", "pentest", "red team", "bug bounty", "cve",
+    "rce", "remote code execution", "sql injection", "buffer overflow",
+    "use-after-free", "privilege escalation", "supply chain attack",
+    "credential", "malicious", "attacker", "intrusion", "compromise",
+    "threat actor", "apt", "hacker", "hackers", "cybercrime",
+    "keamanan siber", "serangan siber", "kerentanan", "celah keamanan",
+    "peretasan", "eksploitasi", "exploit kit", "root access",
+]
+
+# Tiap bidang punya daftar kata kunci sendiri. Skor = jumlah kata yang cocok,
+# bidang dengan skor tertinggi yang menang. Urutan array jadi prioritas saat
+# skor seri: yang lebih spesifik diletakkan lebih dulu (VULN sebelum MALWARE,
+# MALWARE sebelum APT, dst.) supaya "ransomware" tidak jatuh ke APT hanya
+# karena judulnya juga menyebut "cyberattack".
+CYBER_FIELD_KW = [
+    ("CYBER_VULN", [
+        "cve", "zero-day", "zero day", "0day", "n-day", "actively exploited",
+        "exploited in the wild", "known exploited", "kev catalog",
+        "security update", "security patch", "security fix", "security advisory",
+        "patch tuesday", "vulnerability disclosure", "cvss", "msrc",
+        "out-of-band", "critical bug", "hotfix", "patched", "unpatched",
+        "vulnerabilities in", "affected versions", "remote code execution",
+        "privilege escalation", "buffer overflow", "use-after-free",
+        "path traversal", "deserialization", "type confusion",
+        "memory corruption", "out-of-bounds", "auth bypass",
+        "kerentanan", "celah keamanan", "ditambal", "pembaruan keamanan",
+    ]),
+    ("CYBER_MALWARE", [
+        "ransomware", "malware", "trojan", "botnet", "backdoor", "rootkit",
+        "infostealer", "info-stealer", "stealer", "worm", "keylogger",
+        "cryptominer", "cryptojacking", "loader", "dropper", "spyware",
+        "adware", "remote access trojan", "ransom", "data extortion",
+        "extortion", "banking trojan", "malicious software", "wiper",
+        "malware sample", "bot herder", "zombie network",
+        "perangkat lunak berbahaya", "penyadap",
+    ]),
+    ("CYBER_BREACH", [
+        "data breach", "data leak", "records exposed", "leaked data",
+        "database leak", "customer data", "personal data", "stolen data",
+        "credential leak", "credentials leaked", "hacked account", "doxx",
+        "privacy breach", "exposed database", "misconfigured database",
+        "sensitive data", "user data", "millions of records",
+        "kebocoran data", "data bocor", "data pribadi",
+    ]),
+    ("CYBER_APT", [
+        "advanced persistent threat", "nation-state", "state-sponsored",
+        "state sponsored", "threat actor", "threat group", "cyber espionage",
+        "espionage", "cyber campaign", "attribution", "threat intelligence",
+        "indicator of compromise", "indicators of compromise", "ioc",
+        "targeted attack", "apt", "lazarus", "sandworm", "cozy bear",
+        "fancy bear", "midnight blizzard", "volt typhoon", "salt typhoon",
+        "qakbot", "cyberattack", "cyber attack", "hacker group",
+        "espionase", "kelompok peretas",
+    ]),
+    ("CYBER_BUG", [
+        "bug bounty", "hackerone", "bugcrowd", "yeswehack", "intigriti",
+        "patchstack", "responsible disclosure", "disclosure", "bug hunter",
+        "proof of concept", "proof-of-concept", "poc", "bounty", "payout",
+        "penetration test", "pentest", "adversary simulation",
+        "writeup", "write-up", "bug report", "attack chain",
+        "security research", "security researcher", "security researchers",
+        "kerentanan dilaporkan", "laporan kerentanan",
+    ]),
+    ("CYBER_TOOL", [
+        "security tool", "pentest tool", "hacking tool", "recon tool",
+        "reconnaissance", "exploitation framework", "c2 framework",
+        "c2 server", "command-and-control", "gadget chain",
+        "fuzzer", "fuzzing", "port scanner", "osint",
+        "burp suite", "metasploit", "nuclei", "sqlmap", "impacket",
+        "bloodhound", "cobalt strike", "mimikatz", "hashcat", "kali linux",
+        "parrot os", "offensive security", "ctf", "capture the flag",
+        "exploit kit", "post-exploitation", "credential dumping",
+        "red team tool",
+    ]),
+    ("CYBER_BLUE", [
+        "blue team", "dfir", "digital forensics", "forensics", "forensic",
+        "incident response", "threat hunting", "threat detection", "siem",
+        "detection engineering", "edr", "xdr", "telemetry", "hardening",
+        "detection rule", "sigma rule", "yara rule", "log analysis",
+        "memory forensics", "security operations", "purple team",
+        "remediation", "artifact analysis", "triage",
+    ]),
+    ("CYBER_CLOUD", [
+        "cloud security", "amazon web services", "aws", "azure",
+        "google cloud", "gcp", "kubernetes", "container security", "docker",
+        "serverless", "s3 bucket", "misconfiguration", "cloud misconfiguration",
+        "terraform", "devsecops", "iam", "identity and access", "eks", "aks",
+        "gke", "cloud attack", "cloud environment",
+    ]),
+    ("CYBER_APP", [
+        "application security", "appsec", "web security", "owasp", "sast",
+        "dast", "secure coding", "api security", "authentication",
+        "authorization", "session hijacking", "cross-site scripting", "xss",
+        "csrf", "ssrf", "injection", "broken access control", "access control",
+        "browser vulnerability", "content security policy", "secure sdlc",
+        "keamanan aplikasi",
+    ]),
+    ("CYBER_RE", [
+        "reverse engineering", "disassembler", "decompiler", "ghidra",
+        "ida pro", "binary ninja", "radare2", "malware analysis", "unpacker",
+        "static analysis", "dynamic analysis", "firmware analysis", "shellcode",
+        "assembly code", "patch diffing", "binary analysis", "opcode",
+        "rekayasa balik", "analisis malware",
+    ]),
+    ("CYBER_AI", [
+        "ai security", "llm security", "prompt injection", "adversarial ml",
+        "ai agent", "ai model", "generative ai",
+        "jailbreak", "deepfake", "model poisoning", "data poisoning",
+        "ai attack", "ai-powered", "ai powered",
+        "large language model", "keamanan ai",
+    ]),
+    ("CYBER_GRC", [
+        "regulation", "regulatory", "compliance", "gdpr", "nis2", "dora",
+        "privacy law", "data protection", "iso 27001", "pci dss", "audit",
+        "governance", "risk management", "legislation", "lawmakers",
+        "cybersecurity law", "penalty", "penalties",
+        "certification", "regulasi", "kepatuhan", "kebijakan keamanan",
+    ]),
+]
+
+# Judul rilis tool dari GitHub cuma "v3.11.1", jadi nomor versi ikut dipakai
+# sebagai sinyal. Tanpa trailing titik: `kw_word` menolak token berujung
+# non-alfanumerik ("v3." tidak akan cocok dengan "v3.11").
+CYBER_REL_KW = ["v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",
+                "rilis", "launches", "adds support"]
 
 GAME_KW = [
     "game", "gaming", "video game", "games", "gameplay", "gamer", "gamertag",
@@ -649,6 +1259,19 @@ def clean_desc(text, minimum=45, limit=150):
 
 
 def make_item(src, src_name, title, link, desc, pub):
+    # Feed rilis tool (GitHub releases) judulnya cuma nomor versi: "v3.11.1".
+    # Tanpa nama tool, tidak ada yang bisa dibaca dari daftar berita.
+    if src.get("release") and title and not title.lower().startswith(src_name.lower()):
+        title = "%s rilis %s" % (src_name, title)
+    # Google News mengisi <description> dengan "judul + nama situs", jadi 83%
+    # deskripsi itu mengulang judul. Menampilkannya dua kali cuma menambah
+    # bobot payload tanpa menambah informasi. Feed sosial dikecualikan: isi
+    # postingannya memang deskripsi, bukan pengulangan judul.
+    if desc and not src.get("social"):
+        n_t = re.sub(r"[^a-z0-9]+", "", title.lower())
+        n_d = re.sub(r"[^a-z0-9]+", "", desc.lower())
+        if n_t and n_d.startswith(n_t):
+            desc = ""
     return {
         "title": title,
         "url": link,
@@ -657,6 +1280,10 @@ def make_item(src, src_name, title, link, desc, pub):
         "lang": src.get("lang", ""),
         "topic": src.get("topic"),
         "genre": src.get("genre"),
+        "bola_cat": src.get("bola_cat"),
+        "cyber_cat": src.get("cyber_cat"),
+        "release": src.get("release"),
+        "social": src.get("social"),
         "boost": int(src.get("boost") or 0),
         "published": pub.isoformat() if pub else None,
         "pub_ts": pub.timestamp() if pub else None,
@@ -667,8 +1294,14 @@ def make_item(src, src_name, title, link, desc, pub):
 def parse_rss(root, src):
     out = []
     for it in root.findall(".//item"):
-        title = (it.findtext("title") or "").strip()
         link = (it.findtext("link") or "").strip()
+        title = (it.findtext("title") or "").strip()
+        if not title:
+            # Mastodon dan sebagian feed sosial tidak mengisi <title>;
+            # isi postingan ada di <description>. Pakai potongan awalnya.
+            raw = re.sub(r"<[^>]+>", " ",
+                         htmllib.unescape(it.findtext("description") or ""))
+            title = re.sub(r"\s+", " ", raw).strip()[:120]
         if not title or not link:
             continue
         src_name = src["name"]
@@ -700,9 +1333,15 @@ def parse_atom(root, src):
         desc = it.findtext(MEDIA_NS + "group/" + MEDIA_NS + "description") or ""
         if not desc:
             desc = it.findtext(ATOM_NS + "summary") or ""
+        if not desc:
+            # Feed rilis GitHub tidak pakai <summary>, catatan rilisnya ada
+            # di <content type="html">.
+            desc = it.findtext(ATOM_NS + "content") or ""
+        # GitHub hanya mengisi <updated>, tidak ada <published>.
+        date = parse_date(it.findtext(ATOM_NS + "published")) or \
+            parse_date(it.findtext(ATOM_NS + "updated"))
         out.append(make_item(src, src["name"], title, link,
-                             clean_desc(desc),
-                             parse_date(it.findtext(ATOM_NS + "published"))))
+                             clean_desc(desc), date))
     return out
 
 
@@ -730,8 +1369,19 @@ def fetch_steam(src):
 def fetch_feed(src):
     if src.get("kind") == "steam":
         return fetch_steam(src)
-    req = urllib.request.Request(src["url"], headers=FEED_HEADERS)
-    raw = urllib.request.urlopen(req, timeout=8).read()
+    url = src["url"]
+    # YouTube membalas 404 kalau terlalu banyak request paralel dari satu IP,
+    # dan 404 itu identik dengan "channel memang tidak ada". Satu percobaan
+    # ulang setelah jeda sudah cukup untuk membedakan keduanya.
+    for attempt in (0, 1):
+        try:
+            req = urllib.request.Request(url, headers=FEED_HEADERS)
+            raw = urllib.request.urlopen(req, timeout=8).read()
+            break
+        except Exception:
+            if attempt or "youtube.com/feeds" not in url:
+                raise
+            time.sleep(1.5)
     root = ET.fromstring(raw)
     if root.findall(".//" + ATOM_NS + "entry"):
         return parse_atom(root, src)
@@ -796,32 +1446,93 @@ def game_category(topic, g, es, rv, hw):
     return "GAME"
 
 
+# Query Google News bola banyak menarik halaman situs betting yang menyamar
+# sebagai berita. Pola ini terlalu spesifik buat berita sungguhan, jadi
+# dibuang sebelum tampil.
+SPAM_RE = re.compile(
+    r"\b(toto(on)?|judol|slot ?gacor|slot online|situs (?:bola|slot)|wdytoto|"
+    r"situs prediksi|bonus (?:deposit|new member)|ovoDana|totoon|"
+    r"syarat betting|correct score betting)\b", re.I)
+
+
+def is_spam(text):
+    return bool(SPAM_RE.search(text))
+
+
+CYBER_DEFAULT = "CYBER_APT"
+
+
+def cyber_category(hint, scores):
+    """Pilih salah satu dari 12 bidang cyber.
+
+    Sumber yang memang khusus satu bidang punya `cyber_cat`, jadi petunjuk itu
+    yang menang. Untuk media umum, bidang dengan skor kata kunci tertinggi yang
+    dipakai; urutan CYBER_FIELD_KW jadi penentu saat skor seri."""
+    if hint:
+        return hint
+    best, bs = None, 0
+    for code, _ in CYBER_FIELD_KW:
+        s = scores.get(code, 0)
+        if s > bs:
+            best, bs = code, s
+    return best or CYBER_DEFAULT
+
+
+def bola_category(hint, bl, li, tr, na):
+    """Pilih tab sepak bola.
+
+    Sumber query Google News bola sudah punya `bola_cat` (sumbernya memang
+    dibuat khusus topik itu), jadi petunjuk itu yang menang. Klasifikasi
+    kata kunci hanya cadangan untuk media umum seperti CNN/detik yang memuat
+    campuran olahraga."""
+    if hint == "NASIONAL" and (na > 0 or li > 0 or tr == 0):
+        return "BOLA_NASIONAL"
+    if hint == "LIGA" and (li > 0 or bl > 0):
+        return "BOLA_LIGA"
+    if hint == "TRANSFER" and (tr > 0 or bl > 0):
+        return "BOLA_TRANSFER"
+    if hint == "BOLA" and bl > 0:
+        return "BOLA"
+    if na > bl:
+        return "BOLA_NASIONAL"
+    if tr > max(li, 1):
+        return "BOLA_TRANSFER"
+    if li > 0:
+        return "BOLA_LIGA"
+    return "BOLA"
+
+
 def keyword_classify(arts):
     now = dt.datetime.now(dt.timezone.utc).timestamp()
     for a in arts:
+        # Buang halaman betting/OLX yang menyamar sebagai berita.
+        if is_spam(a["title"] + " " + (a.get("desc") or "")):
+            a["drop"] = True
+            continue
         # Nama ikut dinilai: "Eurogamer Reviews" memperkuat deteksi review,
         # "Nintendo of America" memicu kata kunci game.
-        t = (a["title"] + " " + (a.get("source") or "")).lower()
         topic = a.get("topic")
+        t = (a["title"] + " " + (a.get("source") or "")).lower()
+        # Feed sosial (Mastodon) isinya pendek; isi postingan ada di desc,
+        # jadi ikut dinilai supaya kata kunci bidang cyber tidak terlewat.
+        if a.get("social") and a.get("desc"):
+            t += " " + a["desc"].lower()
         # Nama sumber yang berbentuk domain ("mmorpg.com", "platformer.news")
-        # bukan sinyal genre: yangenyebut cuma nama situsnya, bukan isi berita.
+        # bukan sinyal genre: yang menyebut cuma nama situsnya, bukan isi berita.
         src = a.get("source") or ""
         if "." in src and " " not in src:
             src = ""
-        a["genres"] = detect_genres((a["title"] + " " + src).lower())
-        src_genre = a.get("genre")
-        if src_genre:
-            # Feed genre: kalau judulnya tidak cocok genrenya, itu noise dari
-            # query Google News — buang, jangan tampilkan.
-            if src_genre not in a["genres"]:
-                a["drop"] = True
-                continue
-            a["genres"] = [src_genre] + [x for x in a["genres"] if x != src_genre]
-        a["genre_main"] = a["genres"][0] if a.get("genres") else None
         g = count_kw(t, GAME_KW)
         es = count_kw(t, ESPORTS_KW)
         rv = count_kw(t, REVIEW_KW)
         hw = count_kw(t, HARDWARE_KW)
+        bl = count_genre_kw(t, BOLA_KW)
+        li = count_genre_kw(t, BOLA_LIGA_KW)
+        bt = count_genre_kw(t, BOLA_TRANSFER_KW)
+        na = count_genre_kw(t, BOLA_NASIONAL_KW)
+        cy = count_genre_kw(t, CYBER_KW)
+        cy_scores = {code: count_genre_kw(t, kws) for code, kws in CYBER_FIELD_KW}
+        rl = count_genre_kw(t, CYBER_REL_KW)
         gg = count_kw(t, GENTING_KW)
         tr = count_kw(t, TRADER_KW)
         pi = count_kw(t, POL_ID_KW)
@@ -855,12 +1566,56 @@ def keyword_classify(arts):
         elif topic == "esports":
             cat = "ESPORTS"
             base = 50 + es * 10 + g * 5
+        elif topic == "bola":
+            # Sumber bola tidak boleh masuk GENTING: kata "serangan" dan "bom"
+            # di judul berita bola akan salah jadi berita perang.
+            # Wajib ada sinyal sepak bola: query Google News yang luas
+            # ("PSSI") sesekali menarik halaman yang sama sekali bukan bola.
+            if bl + li + bt + na == 0:
+                a["drop"] = True
+                continue
+            cat = bola_category(a.get("bola_cat"), bl, li, bt, na)
+            base = 44 + bl * 5 + max(li, bt, na) * 8
+        elif topic == "cyber":
+            # Sumber cyber tidak boleh masuk GENTING: kata "attack"/"exploit"
+            # di judul kerentanan akan salah jadi berita perang. Ini urutan
+            # penting, cyber harus dicek sebelum GENTING.
+            is_release = a.get("release")
+            strongest = max(cy_scores.values()) if cy_scores else 0
+            if cy + sum(cy_scores.values()) + rl == 0 and not is_release:
+                a["drop"] = True
+                continue
+            # Post sosial sering cuma menyinggung kata umum ("Hacker News",
+            # nama podcast). Wajib ada sinyal bidang yang jelas.
+            if a.get("social") and not is_release and strongest == 0:
+                a["drop"] = True
+                continue
+            if is_release:
+                # Feed rilis first-party: judulnya nomor versi, kategorinya
+                # sudah pasti tool. Tidak perlu ditebak kata kunci.
+                cat = "CYBER_TOOL"
+            else:
+                cat = cyber_category(a.get("cyber_cat"), cy_scores)
+            base = 45 + cy * 5 + strongest * 9 + (6 if is_release else 0)
         elif gg > 0:
             cat = "GENTING"
             base = 55 + gg * 12
         elif tr > 0:
             cat = "TRADER"
             base = 45 + tr * 9
+        elif bl >= 2 and bl * 2 >= (pi + pe + g):
+            # Media umum (CNN Indonesia, detik, Antara) memuat campuran berita
+            # politik dan olahraga. Butuh minimal 2 kata kunci sepak bola
+            # supaya judul politik tidak ikut terambil.
+            cat = bola_category(None, bl, li, bt, na)
+            base = 40 + bl * 6
+        elif cy >= 2 and cy * 2 >= (pi + pe + g + bl):
+            # Media umum (BBC, Reuters, CNBC) sesekali membawa berita cyber.
+            # Butuh minimal 2 kata kunci supaya judul politik biasa tidak
+            # ikut terambil - kata "breach" dan "exploit" mudah muncul
+            # dalam konteks lain.
+            cat = cyber_category(None, cy_scores)
+            base = 41 + cy * 6
         elif g >= 2 and g * 2 >= (pi + pe):
             cat = game_category(None, g, es, rv, hw)
             base = 38 + g * 6
@@ -882,6 +1637,24 @@ def keyword_classify(arts):
         base = max(10, min(100, int(base)))
         a["category"] = cat
         a["hotness"] = base
+
+        # Genre hanya relevan buat tab game. Tanpa penjaga ini berita bola
+        # yang kebetulan kena filter kata kunci game ("FIFA 26", "RPG")
+        # akan muncul dengan chip genre yang menyesatkan.
+        if cat not in GAME_CATS:
+            a["genres"] = []
+            a["genre_main"] = None
+            continue
+        a["genres"] = detect_genres((a["title"] + " " + src).lower())
+        src_genre = a.get("genre")
+        if src_genre:
+            # Feed genre: kalau judulnya tidak cocok genrenya, itu noise dari
+            # query Google News — buang, jangan tampilkan.
+            if src_genre not in a["genres"]:
+                a["drop"] = True
+                continue
+            a["genres"] = [src_genre] + [x for x in a["genres"] if x != src_genre]
+        a["genre_main"] = a["genres"][0] if a.get("genres") else None
 
 
 def merge_cluster_boost(arts):
@@ -909,7 +1682,12 @@ def collect_all():
                 ok.append(s["name"])
                 for it in items:
                     key = norm_title(it["title"])[:60]
-                    if not key:
+                    # Post sosial sering mengutip judul artikel yang sama dengan
+                    # media. Kalau digabung, sumber sosialnya hilang dari daftar,
+                    # jadi kunci sosial disendirikan per akun.
+                    if it.get("social"):
+                        key += "|" + it["source"]
+                    if not key or key == "|":
                         continue
                     if key in raw:
                         exst = raw[key]
@@ -926,7 +1704,26 @@ def collect_all():
                 fail.append(s["name"] + " (" + str(e)[:40] + ")")
     arts = list(raw.values())
     arts.sort(key=lambda a: a.get("pub_ts") or 0, reverse=True)
-    arts = arts[:MAX_ARTICLES * 8]
+    head = arts[:MAX_ARTICLES * 10]
+    # Feed rilis tool sering kalah umur dari ribuan artikel Google News 7 hari
+    # terakhir, sehingga rilis yang masih baru ikut terpotong. Rilis dalam
+    # 90 hari terakhir selalu diikutkan, yang lebih tua dibiarkan tersapu.
+    fresh_rel = [a for a in arts
+                 if a.get("release") and a.get("pub_ts")
+                 and time.time() - a["pub_ts"] <= 90 * 86400]
+    # Proyek yang rilis harian (nuclei-templates dsb.) tidak boleh membanjiri
+    # tab tool: ambil maksimal 3 rilis terbaru per proyek.
+    per_src, picked = {}, []
+    for a in fresh_rel:  # arts sudah urut terbaru dulu
+        lst = per_src.setdefault(a["source"], [])
+        if len(lst) < 3:
+            lst.append(a)
+            picked.append(a)
+    fresh_rel = picked
+    if len(fresh_rel) <= 250:
+        kept_ids = {id(a) for a in head}
+        head = head + [a for a in fresh_rel if id(a) not in kept_ids]
+    arts = head
     for a in arts:
         a["source_main"] = a["sources"][0] if a["sources"] else a["source"]
         a["source_count"] = len(a["sources"])
@@ -934,70 +1731,58 @@ def collect_all():
 
 
 def balance_categories(arts):
-    """Pangkas artikel dengan giliran (round-robin) supaya feed game yang
-    rame tidak menyingkirkan berita politik, dan sebaliknya.
+    """Pangkas artikel dengan giliran (round-robin) supaya sumber paling rame
+    tidak menyingkirkan kelompok topik lain.
 
-    Dua tahap:
-      1. Kategori non-game (Genting/Politik/Trader/Lainnya) mendapat jatah
-         dulu, giliran antar kategori.
-      2. Kategori game memakai giliran per genre utama (bukan per kategori),
-         supaya genre yang punya sedikit berita - Strategy, Simulation -
-         tetap punya isinya. Plafon per kategori game tetap dijaga.
+    Tiga tahap, masing-masing dengan jatah dari FAMILY_SHARE:
+      1. "other"  - Genting/Politik/Trader/Lainnya, giliran antar kategori.
+      2. "game"   - giliran per genre utama (bukan per kategori), supaya
+                    genre minim berita seperti Strategy tetap punya isinya.
+      3. "bola"   - giliran per kategori, supaya bola tidak menimpa news
+                    game dan sebaliknya.
 
-    Article paling panas di tiap kelompok selalu ikut, urutan akhir tetap
-    berdasarkan hotness.
+    Semua tahap tetap memakai plafon MAX_PER_CAT per kategori. Artikel
+    terpanas di tiap kelompok selalu ikut, urutan akhir berdasarkan hotness.
     """
-    game_groups = {}
-    other_groups = {}
+    groups = {fam: {} for fam in FAMILY_SHARE}
     for a in arts:
         cat = a["category"]
-        if cat in GAME_CATS:
+        fam = family_of(cat)
+        if fam == "game":
             key = a.get("genre_main") or "-"
-            game_groups.setdefault(key, []).append(a)
         else:
-            other_groups.setdefault(cat, []).append(a)
-    for group in (game_groups, other_groups):
-        for items in group.values():
+            key = cat
+        groups[fam].setdefault(key, []).append(a)
+    for fam in groups:
+        for items in groups[fam].values():
             items.sort(key=lambda a: -a["hotness"])
 
-    game_budget = int(MAX_ARTICLES * 0.66)
-    other_budget = MAX_ARTICLES - game_budget
     kept = []
     cat_count = {}
-
-    i = 0
-    while len(kept) < other_budget:
-        added = False
-        for cat in sorted(other_groups):
-            if i >= len(other_groups[cat]):
-                continue
-            if len(kept) >= other_budget:
+    for fam in ("other", "game", "bola", "cyber"):
+        fam_groups = groups[fam]
+        budget = int(MAX_ARTICLES * FAMILY_SHARE[fam])
+        # Jatah keluarga ini adalah tambahan, bukan ambang total. Kalau dipakai
+        # sebagai `len(kept) < budget`, keluarga pertama saja yang terisi.
+        start = len(kept)
+        i = 0
+        while len(kept) - start < budget:
+            added = False
+            for key in sorted(fam_groups):
+                if i >= len(fam_groups[key]):
+                    continue
+                a = fam_groups[key][i]
+                cat = a["category"]
+                if cat_count.get(cat, 0) >= MAX_PER_CAT:
+                    continue
+                if len(kept) - start >= budget:
+                    break
+                kept.append(a)
+                cat_count[cat] = cat_count.get(cat, 0) + 1
+                added = True
+            if not added:
                 break
-            kept.append(other_groups[cat][i])
-            cat_count[cat] = cat_count.get(cat, 0) + 1
-            added = True
-        if not added:
-            break
-        i += 1
-
-    i = 0
-    while len(kept) < MAX_ARTICLES:
-        added = False
-        for key in sorted(game_groups):
-            if i >= len(game_groups[key]):
-                continue
-            a = game_groups[key][i]
-            cat = a["category"]
-            if cat_count.get(cat, 0) >= MAX_PER_CAT:
-                continue
-            if len(kept) >= MAX_ARTICLES:
-                break
-            kept.append(a)
-            cat_count[cat] = cat_count.get(cat, 0) + 1
-            added = True
-        if not added:
-            break
-        i += 1
+            i += 1
 
     kept.sort(key=lambda a: -a["hotness"])
     return kept
