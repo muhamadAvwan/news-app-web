@@ -66,6 +66,7 @@
     border-radius:9px;font-size:16px;
     background:linear-gradient(145deg,#1a2230,#10141b);border:1px solid var(--line-2)}
   .grow{flex:1}
+  .tools{display:flex;gap:5px;flex:0 0 auto}
   input[type=search],select,button{color:var(--text);background:var(--surface);
     border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 12px;font-size:13px;
     transition:background .16s var(--ease),border-color .16s var(--ease),
@@ -163,6 +164,7 @@
     .grid.list article{grid-template-columns:1fr}
     .grid.list .meta{grid-column:1;grid-row:auto;justify-content:flex-start;
       max-width:none;margin-top:2px}
+    input[type=search]{flex:0 1 160px;min-width:100px}
   }
 
   /* ---------- lain-lain ---------- */
@@ -185,15 +187,13 @@
   @media (max-width:680px){
     .wrap{padding:0 16px}
     .top{flex-wrap:wrap;padding:11px 0 8px;gap:7px}
-    .brand{flex:1 0 100%;font-size:15px}
+    .brand{flex:1 1 auto;font-size:15px;min-width:0}
     .grow{display:none}
-    input[type=search]{order:3;flex:1 1 60px;min-width:0}
-    select{order:4}
-    #langBtn{order:5}
-    #refreshBtn{order:6}
-    #themeBtn{order:7}
-    #accentBtn{order:8}
-    #viewBtn{order:9}
+    .tools{flex:0 0 auto}
+    input[type=search]{order:2;flex:1 1 120px;min-width:0}
+    select{order:3}
+    #langBtn{order:4}
+    #refreshBtn{order:5}
     .status{padding-bottom:8px}
     .grid{grid-template-columns:1fr;gap:12px}
     article{padding:15px 15px 13px}
@@ -217,9 +217,11 @@
     </select>
     <button id="langBtn" title="Judul dalam Bahasa Indonesia">🇮🇩 ID</button>
     <button id="refreshBtn">Segarkan</button>
-    <button id="themeBtn" class="icon" title="Mode terang / gelap" aria-label="Mode terang / gelap">🌙</button>
-    <button id="accentBtn" class="icon" title="Ganti warna aksen" aria-label="Ganti warna aksen">🎨</button>
-    <button id="viewBtn" class="icon" title="Layout grid / list" aria-label="Layout grid / list">☰</button>
+    <div class="tools">
+      <button id="themeBtn" class="icon" title="Mode terang / gelap" aria-label="Mode terang / gelap">🌙</button>
+      <button id="accentBtn" class="icon" title="Ganti warna aksen" aria-label="Ganti warna aksen">🎨</button>
+      <button id="viewBtn" class="icon" title="Layout grid / list" aria-label="Layout grid / list">☰</button>
+    </div>
   </div>
   <div class="wrap status"><span id="sub">memuat…</span></div>
 </header>
