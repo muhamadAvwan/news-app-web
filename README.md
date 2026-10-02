@@ -7,7 +7,7 @@ Portal berita agregator: frontend statis + Vercel Functions (Python, stdlib saja
 ```
 ├── index.html        # Frontend (satu file)
 ├── api/
-│   └── news.py       # Vercel Function: 340 sumber (RSS + Atom + Mastodon + Steam API) + klasifikasi
+│   └── news.py       # Vercel Function: 348 sumber (RSS + Atom + Mastodon + Steam API) + klasifikasi
 ├── vercel.json
 └── .gitignore
 ```
@@ -77,6 +77,7 @@ Kalau nanti mau X/Twitter, satu-satunya jalan: **self-host RSSHub** (Docker, Nod
 | `CYBER_GRC` | Regulasi & GRC | regulasi, compliance, GDPR/NIS2, UU PDP |
 | `POLITIK_ID` | Politik Dalam Negeri | kebijakan, hukum, ekonomi |
 | `POLITIK_INT` | Politik Internasional | sengketa, diplomasi, geopolitik |
+| `DUNIA_ID` | Indonesia di Dunia | berita tentang Indonesia di media internasional (BBC, Reuters, Al Jazeera, dll.) |
 | `TRADER` | Trader / Pasar | saham, crypto, Forex, emas |
 | `LAINNYA` | Lainnya | sisa |
 
@@ -94,7 +95,7 @@ Cara kerjanya:
 4. **Filter anti-sampah.** Query Google News yang terlalu luas (mis. "Rust") menarik artikel yang bukan game. Artikel dari feed genre yang judulnya tidak cocok dengan genrenya langsung dibuang.
 5. **Multi-label.** Satu artikel bisa punya beberapa genre, diurutkan dari yang paling kuat; `genre_main` dipakai untuk pengimbangan kuota.
 
-`balance_categories()` membagi per keluarga sesuai `FAMILY_SHARE`: kategori non-game (Genting/Politik/Trader/Lainnya) dapat jatah dulu secara giliran, lalu kategori game dibagi **giliran per genre**, lalu bola dibagi **giliran per kategori**, dan cyber dibagi **giliran per kategori**. Tanpa tahap per-genre, genre minim berita seperti Strategy akan selalu kalah dan tabnya kosong; tanpa tahap per-kategori, bola/cyber yang paling ramai akan menimpa yang lain.
+`balance_categories()` membagi per keluarga sesuai `FAMILY_SHARE`: kategori non-game (Genting/Politik/Indonesia di Dunia/Trader/Lainnya) dapat jatah dulu secara giliran, lalu kategori game dibagi **giliran per genre**, lalu bola dibagi **giliran per kategori**, dan cyber dibagi **giliran per kategori**. Tanpa tahap per-genre, genre minim berita seperti Strategy akan selalu kalah dan tabnya kosong; tanpa tahap per-kategori, bola/cyber yang paling ramai akan menimpa yang lain.
 
 ## Endpoint
 
@@ -111,7 +112,7 @@ Dua lapis, supaya berita game tidak tenggelam oleh keyword umum:
 1. **Tag sumber.** Tiap `SOURCES` punya field `topic` (`game` / `esports` / `hardware` / `bola` / `cyber`). Artikel dari sumber bertopic itu **tidak pernah** masuk `GENTING` — jadi "Warhammer" tidak salah jadi berita perang, dan "Citrix zero-day exploited" tidak salah jadi berita serangan militer.
 2. **Kata kunci.** `GAME_KW` memisahkan sub-kategori: kata `review`/`hands-on` → `REVIEW_GAME`, `esports`/`tournament` → `ESPORTS`, `gpu`/`rtx`/`laptop` → `HARDWARE`, sisanya → `GAME`.
 
-Sumber berita umum (BBC, CNBC, Google News politik) tetap pakai jalur lama, tapi berita game di dalamnya ditangkap `GAME_KW`.
+Sumber berita umum (BBC, CNBC, Google News politik) tetap pakai jalur lama, tapi berita game di dalamnya ditangkap `GAME_KW`. Berita tentang Indonesia dari media internasional ditangkap `DUNIA_ID_KW`: artikel berbahasa Inggris yang menyebut Indonesia/Jakarta/Bali/dll. masuk `DUNIA_ID`, sementara artikel berbahasa Indonesia tetap masuk `POLITIK_ID`.
 
 `balance_categories()` membagi kuota artikel **secara giliran** antar kategori, jadi tab politik tidak kosong walau Sembilan feed game mengirim ratusan artikel per jam. Urutan akhir tetap berdasarkan hotness.
 
@@ -137,7 +138,18 @@ Cara kerjanya:
 
 ### Quota empat keluarga
 
-`balance_categories()` membagi kuota per **keluarga** (`FAMILY_SHARE`: 0,10 other / 0,24 game / 0,24 bola / 0,42 cyber), masing-masing memakai **giliran** dengan plafon `MAX_PER_CAT` per kategori. Porsi tiap keluarga dibaca sebagai **tambahan** (`len(kept) - start < budget`), bukan ambang total — kalau tidak, hanya keluarga pertama yang terisi. Tanpa keluarga, cyber (baru, paling sedikit arsipnya) akan tersapu oleh game/bola yang feed-nya jauh lebih rajin.
+`balance_categories()` membagi kuota per **keluarga** (`FAMILY_SHARE`: 0,12 other / 0,24 game / 0,24 bola / 0,40 cyber), masing-masing memakai **giliran** dengan plafon `MAX_PER_CAT` per kategori. Porsi tiap keluarga dibaca sebagai **tambahan** (`len(kept) - start < budget`), bukan ambang total — kalau tidak, hanya keluarga pertama yang terisi. Tanpa keluarga, cyber (baru, paling sedikit arsipnya) akan tersapu oleh game/bola yang feed-nya jauh lebih rajin.
+
+## Indonesia di Dunia
+
+Cakupan 8 query Google News `when:7d` berbahasa Inggris: Indonesia secara umum (presiden, pilihan, gunung berapi, gempa, ekonomi, KTT), Jakarta, Bali, ekonomi (GDP, kelapa sawit, nikel, batu bara, rupiah), lingkungan (deforestasi, orangutan, kebakaran hutan), tokoh (Jokowi, Prabowo), Papua, dan Aceh.
+
+Cara kerjanya:
+
+1. **Tanpa topic tag.** Sumber ini tidak punya field `topic`; routing per artikel memakai `DUNIA_ID_KW` di `keyword_classify()`.
+2. **Bahasa sebagai pembeda.** Artikel berbahasa Indonesia yang menyebut "indonesia"/"jakarta" tetap masuk `POLITIK_ID` ( politik dalam negeri). Hanya artikel **berbahasa Inggris** (internasional) yang menyebut Indonesia yang masuk `DUNIA_ID`.
+3. **GENTING tetap di atas.** Berita gempa/tsunami Indonesia dari media internasional masuk `GENTING` karena kata kunci darurat dicek lebih dulu. Hanya berita non-darurat (ekonomi, lingkungan, tokoh, pariwisata) yang masuk `DUNIA_ID`.
+4. **TRADER lebih dulu.** Artikel ekonomi yang menyebut "GDP"/"commodity" masuk `TRADER` jika punya kata kunci pasar; sisanya yang spesifik soal Indonesia masuk `DUNIA_ID`.
 
 ## Keamanan siber
 

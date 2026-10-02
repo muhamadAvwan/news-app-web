@@ -36,6 +36,7 @@ CATS = [
     ("CYBER_GRC", "Regulasi & GRC", "#94a3b8"),
     ("POLITIK_ID", "Politik Dalam Negeri", "#4da6ff"),
     ("POLITIK_INT", "Politik Internasional", "#8a6dff"),
+    ("DUNIA_ID", "Indonesia di Dunia", "#f43f5e"),
     ("TRADER", "Trader / Pasar", "#ffc14d"),
     ("LAINNYA", "Lainnya", "#7a8290"),
 ]
@@ -52,7 +53,7 @@ CYBER_CATS = ["CYBER_VULN", "CYBER_MALWARE", "CYBER_APT", "CYBER_BREACH",
 # Porsi jatah artikel akhir tiap keluarga topik. Tanpa ini, keluarga dengan
 # sumber paling rame akan memakan seluruh kuota dan tab lain kosong.
 # Cyber dapat porsi besar karena 12 bidang harus tetap terisi.
-FAMILY_SHARE = {"other": 0.10, "game": 0.24, "bola": 0.24, "cyber": 0.42}
+FAMILY_SHARE = {"other": 0.12, "game": 0.24, "bola": 0.24, "cyber": 0.40}
 
 
 def family_of(cat):
@@ -287,6 +288,36 @@ SOURCES = [
         "topic": "esports",
     },
 ]
+
+# ===================================================================
+# BERITA INDONESIA DI MEDIA INTERNASIONAL
+# ===================================================================
+# Berita tentang Indonesia yang disiarkan media internasional (BBC,
+# Reuters, Al Jazeera, Google News dunia). Pakai Google News berbahasa
+# Inggris dengan query spesifik soal Indonesia. Tanpa topic tag:
+# routing per artikel memakai DUNIA_ID_KW di keyword_classify().
+# when:7d supaya tidak ada artikel lama yang tak pernah tenggelam.
+
+DUNIA_ID_QUERIES = [
+    ("Indonesia Dunia", '"Indonesia" (president OR election OR volcano OR economy OR summit)', 10),
+    ("Jakarta Dunia", '"Jakarta" (summit OR diplomatic OR flood OR economy)', 9),
+    ("Bali Dunia", '"Bali" (tourism OR volcano OR earthquake)', 8),
+    ("Ekonomi Indonesia Dunia", '"Indonesia" (GDP OR "palm oil" OR nickel OR coal OR rupiah)', 9),
+    ("Lingkungan Indonesia", '"Indonesia" (deforestation OR orangutan OR "forest fire" OR haze)', 8),
+    ("Tokoh Indonesia Dunia", '(Jokowi OR Prabowo OR "Joko Widodo")', 10),
+    ("Indonesia Papua", '"Papua" (Indonesia OR separatist OR mining)', 8),
+    ("Indonesia Aceh", '"Aceh" (tsunami OR earthquake OR sharia OR conflict)', 8),
+]
+
+for _nm, _q, _bs in DUNIA_ID_QUERIES:
+    SOURCES.append({
+        "name": "DuniaID " + _nm,
+        "url": "https://news.google.com/rss/search?q="
+               + urllib.parse.quote(_q + " when:7d") + "&hl=en-US&gl=US&ceid=US:en",
+        "country": "WORLD",
+        "lang": "en",
+        "boost": _bs,
+    })
 
 # --- Sumber sosial resmi (feed resmi, gratis, tanpa API key) ---
 # YouTube: tiap channel punya feed resmi /feeds/videos.xml?channel_id=...
@@ -839,6 +870,17 @@ POL_INT_KW = [
 ID_HINT_WORDS = [
     "yang", "dengan", "untuk", "dalam", "akan", "presiden", "indonesia",
     "jakarta", "pemerintah", "sehingga", "karena", "oleh", "para",
+]
+
+DUNIA_ID_KW = [
+    "indonesia", "indonesian", "jakarta", "jokowi", "joko widodo",
+    "prabowo", "sukarno", "suharto", "megawati", "garuda indonesia",
+    "sumatra", "sumatera", "kalimantan", "sulawesi", "papua",
+    "bali", "medan", "surabaya", "bandung", "makassar", "yogyakarta",
+    "semarang", "balikpapan", "aceh", "borobudur", "komodo",
+    "orangutan", "kelapa sawit", "timah", "g20 indonesia",
+    "asean indonesia", "indonesian election", "indonesian volcano",
+    "borneo", "lombok", "flores", "sumba",
 ]
 
 # --- Kata kunci sepak bola ---
@@ -1537,6 +1579,7 @@ def keyword_classify(arts):
         tr = count_kw(t, TRADER_KW)
         pi = count_kw(t, POL_ID_KW)
         pe = count_kw(t, POL_INT_KW)
+        di = count_kw(t, DUNIA_ID_KW)
         lang = a.get("lang") or detect_lang(a["title"])
         recency = 0
         if a.get("pub_ts"):
@@ -1622,6 +1665,9 @@ def keyword_classify(arts):
         elif lang == "id" and pi > 0:
             cat = "POLITIK_ID"
             base = 40 + pi * 8
+        elif di > 0 and lang != "id":
+            cat = "DUNIA_ID"
+            base = 42 + di * 9
         elif pe > 0:
             cat = "POLITIK_INT"
             base = 40 + pe * 8
@@ -1735,7 +1781,7 @@ def balance_categories(arts):
     tidak menyingkirkan kelompok topik lain.
 
     Tiga tahap, masing-masing dengan jatah dari FAMILY_SHARE:
-      1. "other"  - Genting/Politik/Trader/Lainnya, giliran antar kategori.
+      1. "other"  - Genting/Politik/Indonesia di Dunia/Trader/Lainnya, giliran antar kategori.
       2. "game"   - giliran per genre utama (bukan per kategori), supaya
                     genre minim berita seperti Strategy tetap punya isinya.
       3. "bola"   - giliran per kategori, supaya bola tidak menimpa news
