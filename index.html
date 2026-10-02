@@ -208,8 +208,8 @@
     <div class="grow"></div>
     <input type="search" id="q" placeholder="Cari berita..." aria-label="Cari berita" />
     <select id="sort" aria-label="Urutkan">
-      <option value="hot">Terpanas</option>
       <option value="new">Terbaru</option>
+      <option value="hot">Terpanas</option>
     </select>
     <button id="langBtn" title="Judul dalam Bahasa Indonesia">🇮🇩 ID</button>
     <button id="refreshBtn">Segarkan</button>
@@ -264,7 +264,7 @@ const CATSTYLE = {
 const PAGE = 60;
 const TR_CACHE_KEY = "dbd_translations_v1";
 const TR_CACHE_TTL = 14*24*3600*1000;
-const S = {data:null, tab:"ALL", genre:"", sort:"hot", lang:"orig", q:"", limit:PAGE,
+const S = {data:null, tab:"ALL", genre:"", sort:"new", lang:"orig", q:"", limit:PAGE,
            translating:new Set(), noTrans:false, trCache:{}, trAvail:"unknown"};
 
 const $ = s => document.querySelector(s);
